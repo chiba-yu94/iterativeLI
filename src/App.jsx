@@ -1,0 +1,78 @@
+// src/App.jsx
+import { useState } from "react";
+
+function App() {
+  const [messages, setMessages] = useState([]);
+  const [input, setInput] = useState("");
+  const [pending, setPending] = useState(false);
+
+  const sendMessage = async (e) => {
+    e.preventDefault();
+    if (!input.trim()) return;
+
+    // Add user message to chat
+    setMessages([...messages, { role: "user", text: input }]);
+    setPending(true);
+
+    // Call backend
+    const res = await fetch("/api/chat", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ message: input }),
+    });
+    const data = await res.json();
+
+    // Add bot message to chat
+    setMessages((msgs) => [
+      ...msgs,
+      { role: "user", text: input },
+      { role: "bot", text: data.reply },
+    ]);
+    setInput("");
+    setPending(false);
+  };
+
+  return (
+    <div style={{ maxWidth: 480, margin: "2rem auto", fontFamily: "sans-serif" }}>
+      <h1>I.L.I. Chat</h1>
+      <div
+        style={{
+          border: "1px solid #ccc",
+          borderRadius: 12,
+          padding: 16,
+          minHeight: 240,
+          marginBottom: 12,
+          background: "#f9f9fe",
+        }}
+      >
+        {messages.map((msg, i) => (
+          <div
+            key={i}
+            style={{
+              textAlign: msg.role === "user" ? "right" : "left",
+              color: msg.role === "user" ? "#3b5bdb" : "#555",
+              margin: "8px 0",
+            }}
+          >
+            <b>{msg.role === "user" ? "You" : "I.L.I."}:</b> {msg.text}
+          </div>
+        ))}
+        {pending && <div style={{ color: "#aaa" }}>I.L.I. is thinking…</div>}
+      </div>
+      <form onSubmit={sendMessage}>
+        <input
+          style={{ width: "70%", padding: 8, fontSize: 16 }}
+          value={input}
+          onChange={(e) => setInput(e.target.value)}
+          placeholder="Type your question…"
+          disabled={pending}
+        />
+        <button style={{ padding: 8, fontSize: 16, marginLeft: 8 }} disabled={pending}>
+          Send
+        </button>
+      </form>
+    </div>
+  );
+}
+
+export default App;
