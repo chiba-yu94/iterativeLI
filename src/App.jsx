@@ -3,18 +3,6 @@ import { useState } from "react";
 import { ReactComponent as ILIlogo } from "./assets/ILI-soulprint.svg";
 
 function App() {
-  return (
-    <div>
-      <header>
-        <ILIlogo width={80} height={80} />
-        <h1>I.L.I. Chat</h1>
-      </header>
-      {/* ... */}
-    </div>
-  );
-}
-
-function App() {
   const [messages, setMessages] = useState([]);
   const [input, setInput] = useState("");
   const [pending, setPending] = useState(false);
@@ -23,31 +11,39 @@ function App() {
     e.preventDefault();
     if (!input.trim()) return;
 
-    // Add user message to chat
-    setMessages([...messages, { role: "user", text: input }]);
+    // Add user message
+    setMessages((msgs) => [...msgs, { role: "user", text: input }]);
     setPending(true);
 
-    // Call backend
-    const res = await fetch("/api/chat", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ message: input }),
-    });
-    const data = await res.json();
+    try {
+      const res = await fetch("/api/chat", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ message: input }),
+      });
+      const data = await res.json();
+      setMessages((msgs) => [
+        ...msgs,
+        { role: "bot", text: data.reply || "…" },
+      ]);
+    } catch {
+      setMessages((msgs) => [
+        ...msgs,
+        { role: "bot", text: "Oops—something went wrong. Try again." },
+      ]);
+    }
 
-    // Add bot message to chat
-    setMessages((msgs) => [
-      ...msgs,
-      { role: "user", text: input },
-      { role: "bot", text: data.reply },
-    ]);
     setInput("");
     setPending(false);
   };
 
   return (
     <div style={{ maxWidth: 480, margin: "2rem auto", fontFamily: "sans-serif" }}>
-      <h1>I.L.I. Chat</h1>
+      <header style={{ textAlign: "center", marginBottom: "1rem" }}>
+        <ILIlogo width={80} height={80} />
+        <h1>I.L.I. Chat</h1>
+      </header>
+
       <div
         style={{
           border: "1px solid #ccc",
@@ -72,6 +68,7 @@ function App() {
         ))}
         {pending && <div style={{ color: "#aaa" }}>I.L.I. is thinking…</div>}
       </div>
+
       <form onSubmit={sendMessage}>
         <input
           style={{ width: "70%", padding: 8, fontSize: 16 }}
