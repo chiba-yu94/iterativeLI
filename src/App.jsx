@@ -1,6 +1,7 @@
 // src/App.jsx
 import { useState } from "react";
-import { ReactComponent as ILIlogo } from "./assets/ILI-soulprint.svg";
+// Use URL import for SVG to avoid SVGR build issues
+import ILIlogoUrl from "./assets/ILI-soulprint.svg";
 
 function App() {
   const [messages, setMessages] = useState([]);
@@ -26,7 +27,9 @@ function App() {
         ...msgs,
         { role: "bot", text: data.reply || "…" },
       ]);
-    } catch {
+    } catch (err) {
+      // Log error to console for debugging
+      console.error("Error fetching /api/chat:", err);
       setMessages((msgs) => [
         ...msgs,
         { role: "bot", text: "Oops—something went wrong. Try again." },
@@ -40,7 +43,14 @@ function App() {
   return (
     <div style={{ maxWidth: 480, margin: "2rem auto", fontFamily: "sans-serif" }}>
       <header style={{ textAlign: "center", marginBottom: "1rem" }}>
-        <ILIlogo width={80} height={80} />
+        {/* Render SVG as an <img> to avoid Rollup errors */}
+        <img
+          src={ILIlogoUrl}
+          alt="I.L.I. logo"
+          width={80}
+          height={80}
+          style={{ margin: "0 auto", display: "block" }}
+        />
         <h1>I.L.I. Chat</h1>
       </header>
 
