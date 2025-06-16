@@ -21,10 +21,9 @@ function App() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ message: input }),
       });
-      if (!res.ok) {
-        throw new Error(`HTTP ${res.status}`);
-      }
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const data = await res.json();
+
       setMessages((msgs) => [
         ...msgs,
         { role: "bot", text: data.reply || "…" },
@@ -53,25 +52,23 @@ function App() {
         padding: "1rem",
       }}
     >
+      {/* Header with enlarged soul print and no title */}
       <header
         style={{
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          gap: "12px",
+          textAlign: "center",
           marginBottom: "1rem",
         }}
       >
         <img
           src={ILIlogoUrl}
-          alt="I.L.I. logo"
-          width={48}
-          height={48}
-          style={{ display: "block" }}
+          alt="I.L.I. soul print"
+          width={120}
+          height={120}
+          style={{ display: "block", margin: "0 auto" }}
         />
-        <h1 style={{ margin: 0 }}>I.L.I. Chat</h1>
       </header>
 
+      {/* Chat window */}
       <div
         style={{
           border: "1px solid #555",
@@ -98,6 +95,7 @@ function App() {
         {pending && <div style={{ color: "#aaa" }}>I.L.I. is thinking…</div>}
       </div>
 
+      {/* Input form */}
       <form onSubmit={sendMessage} style={{ display: "flex", gap: "8px" }}>
         <input
           style={{
