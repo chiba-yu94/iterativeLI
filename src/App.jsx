@@ -1,6 +1,5 @@
 // src/App.jsx
 import { useState } from "react";
-// Import SVG as URL to avoid SVGR build issues
 import ILIlogoUrl from "./assets/ILI-soulprint.svg";
 
 function App() {
@@ -12,7 +11,6 @@ function App() {
     e.preventDefault();
     if (!input.trim()) return;
 
-    // Add the user's message to the chat
     setMessages((msgs) => [...msgs, { role: "user", text: input }]);
     setPending(true);
 
@@ -22,6 +20,9 @@ function App() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ message: input }),
       });
+      if (!res.ok) {
+        throw new Error(`HTTP ${res.status}`);
+      }
       const data = await res.json();
       setMessages((msgs) => [
         ...msgs,
@@ -35,33 +36,50 @@ function App() {
       ]);
     }
 
-    // Reset input and loading state
     setInput("");
     setPending(false);
   };
 
   return (
-    <div style={{ maxWidth: 480, margin: "2rem auto", fontFamily: "sans-serif" }}>
-      <header style={{ textAlign: "center", marginBottom: "1rem" }}>
-        {/* Render SVG via <img> tag */}
+    <div
+      style={{
+        maxWidth: 480,
+        margin: "2rem auto",
+        fontFamily: "sans-serif",
+        backgroundColor: "#000",
+        color: "#fff",
+        minHeight: "100vh",
+        padding: "1rem",
+      }}
+    >
+      <header
+        style={{
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          gap: "12px",
+          marginBottom: "1rem",
+        }}
+      >
         <img
           src={ILIlogoUrl}
           alt="I.L.I. logo"
-          width={80}
-          height={80}
-          style={{ margin: "0 auto", display: "block" }}
+          width={48}
+          height={48}
+          style={{ display: "block" }}
         />
-        <h1>I.L.I. Chat</h1>
+        <h1 style={{ margin: 0 }}>I.L.I. Chat</h1>
       </header>
 
       <div
         style={{
-          border: "1px solid #ccc",
+          border: "1px solid #555",
           borderRadius: 12,
           padding: 16,
           minHeight: 240,
           marginBottom: 12,
-          background: "#f9f9fe",
+          background: "#111",
+          color: "#eee",
         }}
       >
         {messages.map((msg, i) => (
@@ -69,7 +87,7 @@ function App() {
             key={i}
             style={{
               textAlign: msg.role === "user" ? "right" : "left",
-              color: msg.role === "user" ? "#3b5bdb" : "#555",
+              color: msg.role === "user" ? "#3b5bdb" : "#eee",
               margin: "8px 0",
             }}
           >
@@ -79,15 +97,31 @@ function App() {
         {pending && <div style={{ color: "#aaa" }}>I.L.I. is thinking…</div>}
       </div>
 
-      <form onSubmit={sendMessage}>
+      <form onSubmit={sendMessage} style={{ display: "flex", gap: "8px" }}>
         <input
-          style={{ width: "70%", padding: 8, fontSize: 16 }}
+          style={{
+            flex: 1,
+            padding: 8,
+            fontSize: 16,
+            background: "#222",
+            color: "#fff",
+            border: "1px solid #555",
+          }}
           value={input}
           onChange={(e) => setInput(e.target.value)}
           placeholder="Type your question…"
           disabled={pending}
         />
-        <button style={{ padding: 8, fontSize: 16, marginLeft: 8 }} disabled={pending}>
+        <button
+          style={{
+            padding: 8,
+            fontSize: 16,
+            background: "#3b5bdb",
+            color: "#fff",
+            border: "none",
+          }}
+          disabled={pending}
+        >
           Send
         </button>
       </form>
