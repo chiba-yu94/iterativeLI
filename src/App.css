@@ -21,28 +21,28 @@ body {
   padding: 1rem;
 }
 
-/* 3. Header/logo */
+/* 3. Header / Soul Print */
 header {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 12px;
+  display: block;
+  text-align: center;
   margin-bottom: 1rem;
 }
 
+/* Make the soul print really stand out */
 header img {
-  width: 48px;
-  height: 48px;
+  width: 120px;               /* enlarged */
+  height: 120px;
+  display: block;
+  margin: 0 auto 1rem auto;
   animation: bounce 2s infinite ease-in-out;
 }
 
-/* 4. Title */
+/* Hide the old “I.L.I. Chat” title */
 header h1 {
-  font-size: 1.5rem;
-  color: #eee;
+  display: none;
 }
 
-/* 5. Chat window */
+/* 4. Chat window */
 .chat-window {
   border: 1px solid #555;
   border-radius: 12px;
@@ -54,7 +54,7 @@ header h1 {
   overflow-y: auto;
 }
 
-/* 6. Messages */
+/* 5. Messages */
 .message {
   margin: 8px 0;
   line-height: 1.4;
@@ -75,12 +75,12 @@ header h1 {
   margin-right: 4px;
 }
 
-/* 7. Loading indicator */
+/* 6. Loading indicator */
 .loading {
   color: #aaa;
 }
 
-/* 8. Form & controls */
+/* 7. Form & controls */
 form {
   display: flex;
   gap: 8px;
@@ -111,7 +111,7 @@ form button:disabled {
   cursor: not-allowed;
 }
 
-/* 9. Bounce animation */
+/* 8. Bounce animation */
 @keyframes bounce {
   0%, 100% { transform: translateY(0); }
   50%      { transform: translateY(-8px); }
