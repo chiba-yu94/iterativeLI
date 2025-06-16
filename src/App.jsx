@@ -1,6 +1,7 @@
 // src/App.jsx
 import { useState } from "react";
 import ILIlogoUrl from "./assets/ILI-soulprint.svg";
+import "./App.css";
 
 function App() {
   const [messages, setMessages] = useState([]);
