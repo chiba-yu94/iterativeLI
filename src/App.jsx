@@ -1,5 +1,18 @@
 // src/App.jsx
 import { useState } from "react";
+import { ReactComponent as ILIlogo } from "./assets/ILI-soulprint.svg";
+
+function App() {
+  return (
+    <div>
+      <header>
+        <ILIlogo width={80} height={80} />
+        <h1>I.L.I. Chat</h1>
+      </header>
+      {/* ... */}
+    </div>
+  );
+}
 
 function App() {
   const [messages, setMessages] = useState([]);
