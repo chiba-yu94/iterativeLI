@@ -1,6 +1,6 @@
 // src/App.jsx
 import { useState } from "react";
-import ILIlogoUrl from "./assets/ILI-soulprint.svg";
+import ILIlogoUrl from "./assets/ILI-SOUL.svg";
 import "./App.css";
 
 function App() {
