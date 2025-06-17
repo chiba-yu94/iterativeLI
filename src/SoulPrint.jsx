@@ -1,17 +1,15 @@
 import { ReactComponent as SoulPrintSVG } from './assets/ILI-SOUL.svg';
 
-export default function SoulPrint({ width = 120, height = 120, style = {}, slowStorm, coreGlow }) {
-  const className = [
-    slowStorm ? "soulprint-storm-slow" : "",
-    coreGlow ? "soulprint-core-glow" : ""
-  ].join(" ").trim();
-
+export default function SoulPrint({ slowStorm, coreGlow }) {
+  let className = "soulprint-svg";
+  if (slowStorm) className += " soulprint-storm-slow";
+  if (coreGlow) className += " soulprint-core-glow";
   return (
-    <div
+    <SoulPrintSVG
       className={className}
-      style={{ display: "block", margin: "0 auto", width, height, ...style }}
-    >
-      <SoulPrintSVG width={width} height={height} />
-    </div>
+      width={120}
+      height={120}
+      style={{ display: "block", margin: "0 auto" }}
+    />
   );
 }
