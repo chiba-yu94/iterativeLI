@@ -56,6 +56,7 @@ header h1 {
   width: 100%;
   background: none;
   padding: 0;
+  transition: opacity 0.7s;
 }
 
 .open-chat-line.user {
@@ -120,31 +121,35 @@ form button:disabled {
 }
 
 /* ---- SOULPRINT STORM ANIMATION ---- */
-/* Five back layers, each with unique motion */
 #g965 {
   animation: rotate-right 20s linear infinite;
   transform-origin: 50% 50%;
   will-change: transform;
+  transition: animation-duration 0.7s;
 }
 #g3042 {
   animation: rotate-left 17s linear infinite;
   transform-origin: 50% 50%;
   will-change: transform;
+  transition: animation-duration 0.7s;
 }
 #g3042-1 {
   animation: rotate-right 14s linear infinite;
   transform-origin: 50% 50%;
   will-change: transform;
+  transition: animation-duration 0.7s;
 }
 #g3042-5 {
   animation: rotate-left 11s linear infinite;
   transform-origin: 50% 50%;
   will-change: transform;
+  transition: animation-duration 0.7s;
 }
 #g3042-8 {
   animation: rotate-right 8s linear infinite;
   transform-origin: 50% 50%;
   will-change: transform;
+  transition: animation-duration 0.7s;
 }
 @keyframes rotate-right {
   from { transform: rotate(0deg); }
@@ -155,7 +160,7 @@ form button:disabled {
   to   { transform: rotate(-360deg); }
 }
 
-/* Storm slows when typing */
+/* Storm slows gradually when typing (typing = soulprint-storm-slow on container) */
 .soulprint-storm-slow #g965 {
   animation-duration: 40s !important;
 }
@@ -172,13 +177,17 @@ form button:disabled {
   animation-duration: 16s !important;
 }
 
-/* ---- SOULPRINT GLOW (no size change) ---- */
-#g1 {
-  transition: filter 0.4s;
+/* ---- SOULPRINT MULTI-GLOW (g924, g1, g2) ---- */
+#g924,
+#g1,
+#g2 {
+  transition: filter 0.6s cubic-bezier(.7,1.6,.5,1);
   filter: none;
 }
-.soulprint-core-glow #g1 {
-  filter: drop-shadow(0 0 24px #94fff788) drop-shadow(0 0 48px #6bf8ee44);
+.soulprint-core-glow #g924,
+.soulprint-core-glow #g1,
+.soulprint-core-glow #g2 {
+  filter: drop-shadow(0 0 22px #94fff7aa) drop-shadow(0 0 38px #6bf8ee77);
 }
 
 /* 8. Chat log viewer */
