@@ -113,3 +113,15 @@ function App() {
             fontSize: 16,
             background: "#3b5bdb",
             color: "#fff",
+            border: "none",
+          }}
+          disabled={pending}
+        >
+          Send
+        </button>
+      </form>
+    </div>
+  );
+}
+
+export default App;
