@@ -63,7 +63,10 @@ function App() {
       boxSizing: "border-box",
     }}>
       <header style={{ textAlign: "center", marginBottom: "1rem" }}>
-        <SoulPrint width={120} height={120} />
+      <SoulPrint
+        slowStorm={input.length > 0 && !pending}
+        coreGlow={pending}
+      />
       </header>
       <ChatBox messages={messages} leavingMsg={leavingMsg} pending={pending} />
       <InputBar
