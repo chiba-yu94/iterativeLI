@@ -1,6 +1,5 @@
-// src/App.jsx
 import { useState } from "react";
-import ILIlogoUrl from "./assets/ILI-SOUL.svg";
+import { ReactComponent as ILIlogo } from "./assets/ILI-SOUL.svg";
 import "./App.css";
 
 function App() {
@@ -59,9 +58,7 @@ function App() {
           marginBottom: "1rem",
         }}
       >
-        <img
-          src={ILIlogoUrl}
-          alt="I.L.I. soul print"
+        <ILIlogo
           width={120}
           height={120}
           style={{ display: "block", margin: "0 auto" }}
