@@ -50,7 +50,7 @@ function App() {
         padding: "1rem",
       }}
     >
-      {/* Header with enlarged soul print and no title */}
+      {/* Header with soul print and a test SVG circle */}
       <header
         style={{
           textAlign: "center",
@@ -58,10 +58,14 @@ function App() {
         }}
       >
         <SoulPrint
-          <svg width={120} height={120} viewBox="0 0 120 120">
-            <circle cx="60" cy="60" r="50" fill="cyan" />
-              </svg>
+          width={120}
+          height={120}
+          style={{ display: "block", margin: "0 auto" }}
         />
+        {/* Test SVG: this should show a cyan circle */}
+        <svg width={120} height={120} viewBox="0 0 120 120" style={{ margin: "1rem auto", display: "block" }}>
+          <circle cx="60" cy="60" r="50" fill="cyan" />
+        </svg>
       </header>
 
       {/* Chat window */}
