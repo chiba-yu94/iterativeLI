@@ -1,11 +1,28 @@
-import { ReactComponent as SoulPrintSVG } from './assets/ILI-SOUL.svg';
+/* Storm groups rotate normally */
+#back1, #back2, #back3, #back4, #back5 {
+  animation: soul-storm 8s linear infinite;
+}
+@keyframes soul-storm {
+  from { transform: rotate(0deg);}
+  to { transform: rotate(360deg);}
+}
 
-export default function SoulPrint(props) {
-  return (
-    <SoulPrintSVG
-      width={props.width || 120}
-      height={props.height || 120}
-      style={{ display: "block", margin: "0 auto", ...props.style }}
-    />
-  );
+/* When slow, storm slows down */
+.soulprint-storm-slow #back1,
+.soulprint-storm-slow #back2,
+.soulprint-storm-slow #back3,
+.soulprint-storm-slow #back4,
+.soulprint-storm-slow #back5 {
+  animation-duration: 20s !important; /* slower spin */
+}
+
+/* Core base */
+#core {
+  transition: transform 0.4s cubic-bezier(.7,1.6,.5,1);
+  transform: scale(1);
+}
+/* Core grows when pending */
+.soulprint-core-grow #core {
+  transform: scale(1.17);
+  filter: drop-shadow(0 0 18px #9ffcff88);
 }
