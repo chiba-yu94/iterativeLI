@@ -1,6 +1,6 @@
 // src/App.jsx
 import { useState } from "react";
-import SoulPrint from "./assets/ILI-SOUL.svg?component";
+import SoulPrint from "./components/SoulPrint";
 import "./App.css";
 
 function App() {
