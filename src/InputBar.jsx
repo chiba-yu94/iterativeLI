@@ -1,6 +1,6 @@
 export default function InputBar({ value, onChange, onSubmit, pending }) {
   return (
-    <form onSubmit={onSubmit} style={{ display: "flex", gap: "8px" }}>
+    <form onSubmit={onSubmit} style={{ display: "flex", gap: "8px", width: "100%" }}>
       <input
         style={{
           flex: 1,
