@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { ReactComponent as ILIlogo } from "./assets/ILI-SOUL.svg?react";
+import ILIlogo from './assets/ILI-SOUL.svg?react';
 import "./App.css";
 
 function App() {
