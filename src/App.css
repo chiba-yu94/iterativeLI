@@ -200,7 +200,7 @@ form button:disabled {
   animation-duration: 16s !important;
 }
 
-/* 9. SoulPrint Glow Animation */
+/* 9. SoulPrint Glow Animation — wide, breathing, circular aura */
 #g924,
 #g1,
 #g2 {
@@ -208,21 +208,33 @@ form button:disabled {
   filter: none;
   opacity: 1;
 }
+
 @keyframes coreGlowPulse {
-  0%   { filter: drop-shadow(0 0 16px #94fff7aa) drop-shadow(0 0 32px #6bf8ee55); opacity: 1; }
-  50%  { filter: drop-shadow(0 0 38px #6bf8eecc) drop-shadow(0 0 64px #94fff799); opacity: 0.8; }
-  100% { filter: drop-shadow(0 0 16px #94fff7aa) drop-shadow(0 0 32px #6bf8ee55); opacity: 1; }
+  0%   { filter: drop-shadow(0 0 36px #94fff7aa) drop-shadow(0 0 90px #6bf8ee55); opacity: 1; }
+  50%  { filter: drop-shadow(0 0 80px #aeefffcc) drop-shadow(0 0 180px #94fff799); opacity: 0.82; }
+  100% { filter: drop-shadow(0 0 36px #94fff7aa) drop-shadow(0 0 90px #6bf8ee55); opacity: 1; }
 }
 .soulprint-core-glow #g924,
 .soulprint-core-glow #g1,
 .soulprint-core-glow #g2 {
-  animation: coreGlowPulse 1.7s ease-in-out infinite;
+  animation: coreGlowPulse 2s ease-in-out infinite;
 }
+
+/* (Optional) Animate a circular "halo" on the entire SVG for a full aura effect */
+@keyframes soulprintHaloPulse {
+  0%   { filter: drop-shadow(0 0 48px #aeefff44) drop-shadow(0 0 128px #4fcfff33); }
+  50%  { filter: drop-shadow(0 0 120px #aeefff77) drop-shadow(0 0 240px #4fcfff66); }
+  100% { filter: drop-shadow(0 0 48px #aeefff44) drop-shadow(0 0 128px #4fcfff33); }
+}
+.soulprint-core-glow .soulprint-svg {
+  animation: soulprintHaloPulse 2.4s ease-in-out infinite;
+}
+
 /*
 .soulprint-core-glow-static #g924,
 .soulprint-core-glow-static #g1,
 .soulprint-core-glow-static #g2 {
-  filter: drop-shadow(0 0 24px #94fff7cc) drop-shadow(0 0 44px #6bf8eeaa);
+  filter: drop-shadow(0 0 64px #94fff7cc) drop-shadow(0 0 128px #6bf8eeaa);
 }
 */
 
