@@ -131,27 +131,27 @@ form button:disabled {
 }
 
 /* Target each back layer for alternating storm effect */
-#back1,
-#back2,
-#back3,
-#back4,
-#back5 {
+#g965,
+#g3042,
+#g3042-1,
+#g3042-5,
+#g3042-8 {
   transform-origin: 50% 50%;
   will-change: transform;
 }
 
-#back1 {
+#g965 {
   animation: rotate-right 20s linear infinite;
 }
-#back2 {
+#g3042 {
   animation: rotate-left 17s linear infinite;
 }
-#back3 {
+#g3042-1 {
   animation: rotate-right 14s linear infinite;
 }
-#back4 {
+#g3042-5 {
   animation: rotate-left 11s linear infinite;
 }
-#back5 {
+#g3042-8 {
   animation: rotate-right 8s linear infinite;
 }
