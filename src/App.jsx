@@ -11,6 +11,8 @@ export default function App() {
   const [partialReply, setPartialReply] = useState("");
   const [showLog, setShowLog] = useState(false);
 
+  const WORD_INTERVAL = 90; // ms per word (adjust as you like)
+
   const revealReply = (fullText) => {
     const words = fullText.split(" ");
     setPartialReply("");
@@ -19,7 +21,7 @@ export default function App() {
       if (index < words.length) {
         setPartialReply((prev) => prev + (prev ? " " : "") + words[index]);
         index++;
-        setTimeout(showNextWord, 60);
+        setTimeout(showNextWord, WORD_INTERVAL);
       } else {
         setMessages((msgs) => [...msgs, { role: "bot", text: fullText }]);
         setPartialReply("");
@@ -56,7 +58,6 @@ export default function App() {
     setInput("");
   };
 
-  // For chat flow, show last two turns, with partial typing if needed
   const lastTwo = (() => {
     if (pending && partialReply) {
       let prev = messages.length > 0 ? messages[messages.length - 1] : null;
