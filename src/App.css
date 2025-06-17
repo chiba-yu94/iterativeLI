@@ -154,7 +154,7 @@ form button:disabled {
   box-sizing: border-box;
 }
 
-/* 8. SoulPrint Storm Animation */
+/* 8. SOULPRINT STORM ANIMATION */
 #g965 {
   animation: rotate-right 20s linear infinite;
   transform-origin: 50% 50%;
@@ -193,6 +193,8 @@ form button:disabled {
   from { transform: rotate(0deg); }
   to   { transform: rotate(-360deg); }
 }
+
+/* Storm slows gradually when typing (typing = soulprint-storm-slow on container) */
 .soulprint-storm-slow #g965 {
   animation-duration: 40s !important;
 }
@@ -209,74 +211,40 @@ form button:disabled {
   animation-duration: 16s !important;
 }
 
-/* Animate back layers expanding/contracting as if breathing while talking */
+/* --- New: Animate storm layers expanding/contracting as if breathing while talking --- */
 @keyframes soulprintStormPulse {
   0%   { transform: scale(1) rotate(0deg);}
   50%  { transform: scale(1.14) rotate(10deg);}
   100% { transform: scale(1) rotate(0deg);}
 }
 
-.soulprint-core-glow #g965 {
-  animation: soulprintStormPulse 2.1s ease-in-out infinite,
-             rotate-right 40s linear infinite;
+.soulprint-storm-breathing #g965 {
+  animation:
+    soulprintStormPulse 2.1s ease-in-out infinite,
+    rotate-right 40s linear infinite;
 }
-.soulprint-core-glow #g3042 {
-  animation: soulprintStormPulse 2.1s ease-in-out infinite,
-             rotate-left 34s linear infinite;
+.soulprint-storm-breathing #g3042 {
+  animation:
+    soulprintStormPulse 2.1s ease-in-out infinite,
+    rotate-left 34s linear infinite;
 }
-.soulprint-core-glow #g3042-1 {
-  animation: soulprintStormPulse 2.1s ease-in-out infinite,
-             rotate-right 28s linear infinite;
+.soulprint-storm-breathing #g3042-1 {
+  animation:
+    soulprintStormPulse 2.1s ease-in-out infinite,
+    rotate-right 28s linear infinite;
 }
-.soulprint-core-glow #g3042-5 {
-  animation: soulprintStormPulse 2.1s ease-in-out infinite,
-             rotate-left 22s linear infinite;
+.soulprint-storm-breathing #g3042-5 {
+  animation:
+    soulprintStormPulse 2.1s ease-in-out infinite,
+    rotate-left 22s linear infinite;
 }
-.soulprint-core-glow #g3042-8 {
-  animation: soulprintStormPulse 2.1s ease-in-out infinite,
-             rotate-right 16s linear infinite;
-}
-
-
-/* 9. SoulPrint Glow Animation — wide, breathing, circular aura */
-#g924,
-#g1,
-#g2 {
-  transition: filter 0.6s cubic-bezier(.7,1.6,.5,1), opacity 0.4s cubic-bezier(.7,1.6,.5,1);
-  filter: none;
-  opacity: 1;
+.soulprint-storm-breathing #g3042-8 {
+  animation:
+    soulprintStormPulse 2.1s ease-in-out infinite,
+    rotate-right 16s linear infinite;
 }
 
-@keyframes coreGlowPulse {
-  0%   { filter: drop-shadow(0 0 36px #94fff7aa) drop-shadow(0 0 90px #6bf8ee55); opacity: 1; }
-  50%  { filter: drop-shadow(0 0 80px #aeefffcc) drop-shadow(0 0 180px #94fff799); opacity: 0.82; }
-  100% { filter: drop-shadow(0 0 36px #94fff7aa) drop-shadow(0 0 90px #6bf8ee55); opacity: 1; }
-}
-.soulprint-core-glow #g924,
-.soulprint-core-glow #g1,
-.soulprint-core-glow #g2 {
-  animation: coreGlowPulse 2s ease-in-out infinite;
-}
-
-/* (Optional) Animate a circular "halo" on the entire SVG for a full aura effect */
-@keyframes soulprintHaloPulse {
-  0%   { filter: drop-shadow(0 0 48px #aeefff44) drop-shadow(0 0 128px #4fcfff33); }
-  50%  { filter: drop-shadow(0 0 120px #aeefff77) drop-shadow(0 0 240px #4fcfff66); }
-  100% { filter: drop-shadow(0 0 48px #aeefff44) drop-shadow(0 0 128px #4fcfff33); }
-}
-.soulprint-core-glow .soulprint-svg {
-  animation: soulprintHaloPulse 2.4s ease-in-out infinite;
-}
-
-/*
-.soulprint-core-glow-static #g924,
-.soulprint-core-glow-static #g1,
-.soulprint-core-glow-static #g2 {
-  filter: drop-shadow(0 0 64px #94fff7cc) drop-shadow(0 0 128px #6bf8eeaa);
-}
-*/
-
-/* 10. Optional: message fade in/out for gentle transition */
+/* 9. Optional: message fade in/out for gentle transition */
 @keyframes fadeUpOut {
   from { opacity: 1; transform: translateY(0);}
   to   { opacity: 0; transform: translateY(-32px);}
