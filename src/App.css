@@ -119,34 +119,65 @@ form button:disabled {
   to   { opacity: 1; transform: translateY(0);}
 }
 
-/* 7. Soul Print “Storm” Rotations – all animate at same speed by default */
-#g965, #g3042, #g3042-1, #g3042-5, #g3042-8 {
-  animation: soul-storm 8s linear infinite;
+/* ---- SOULPRINT STORM ANIMATION ---- */
+/* Five back layers, each with unique motion */
+#g965 {
+  animation: rotate-right 20s linear infinite;
   transform-origin: 50% 50%;
   will-change: transform;
 }
-@keyframes soul-storm {
-  from { transform: rotate(0deg);}
-  to { transform: rotate(360deg);}
+#g3042 {
+  animation: rotate-left 17s linear infinite;
+  transform-origin: 50% 50%;
+  will-change: transform;
+}
+#g3042-1 {
+  animation: rotate-right 14s linear infinite;
+  transform-origin: 50% 50%;
+  will-change: transform;
+}
+#g3042-5 {
+  animation: rotate-left 11s linear infinite;
+  transform-origin: 50% 50%;
+  will-change: transform;
+}
+#g3042-8 {
+  animation: rotate-right 8s linear infinite;
+  transform-origin: 50% 50%;
+  will-change: transform;
+}
+@keyframes rotate-right {
+  from { transform: rotate(0deg); }
+  to   { transform: rotate(360deg); }
+}
+@keyframes rotate-left {
+  from { transform: rotate(0deg); }
+  to   { transform: rotate(-360deg); }
 }
 
 /* Storm slows when typing */
-.soulprint-storm-slow #g965,
-.soulprint-storm-slow #g3042,
-.soulprint-storm-slow #g3042-1,
-.soulprint-storm-slow #g3042-5,
+.soulprint-storm-slow #g965 {
+  animation-duration: 40s !important;
+}
+.soulprint-storm-slow #g3042 {
+  animation-duration: 34s !important;
+}
+.soulprint-storm-slow #g3042-1 {
+  animation-duration: 28s !important;
+}
+.soulprint-storm-slow #g3042-5 {
+  animation-duration: 22s !important;
+}
 .soulprint-storm-slow #g3042-8 {
-  animation-duration: 20s !important;
+  animation-duration: 16s !important;
 }
 
-/* Glow (and gentle grow) for 'aroundcore' (g1) when pending */
+/* ---- SOULPRINT GLOW (no size change) ---- */
 #g1 {
-  transition: transform 0.4s cubic-bezier(.7,1.6,.5,1), filter 0.4s;
-  transform: scale(1);
+  transition: filter 0.4s;
   filter: none;
 }
 .soulprint-core-glow #g1 {
-  transform: scale(1.12);
   filter: drop-shadow(0 0 24px #94fff788) drop-shadow(0 0 48px #6bf8ee44);
 }
 
