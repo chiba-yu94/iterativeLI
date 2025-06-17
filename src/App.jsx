@@ -1,6 +1,6 @@
 // src/App.jsx
 import { useState } from "react";
-import ILIlogoUrl from "./assets/ILI-SOUL.svg";
+import { ReactComponent as SoulPrint } from "./assets/ILI-SOUL.svg";
 import "./App.css";
 
 function App() {
@@ -41,86 +41,37 @@ function App() {
   };
 
   return (
-    <div
-      style={{
-        maxWidth: 480,
-        margin: "2rem auto",
-        fontFamily: "sans-serif",
-        backgroundColor: "#000",
-        color: "#fff",
-        minHeight: "100vh",
-        padding: "1rem",
-      }}
-    >
-      {/* Header with enlarged soul print and no title */}
-      <header
-        style={{
-          textAlign: "center",
-          marginBottom: "1rem",
-        }}
-      >
-        <img
-          src={ILIlogoUrl}
-          alt="I.L.I. soul print"
+    <div className="app-container">
+      <header className="soul-header">
+        <SoulPrint
+          className="soulprint"
           width={120}
           height={120}
-          style={{ display: "block", margin: "0 auto" }}
+          aria-label="I.L.I. soul print"
         />
       </header>
 
-      {/* Chat window */}
-      <div
-        style={{
-          border: "1px solid #555",
-          borderRadius: 12,
-          padding: 16,
-          minHeight: 240,
-          marginBottom: 12,
-          background: "#111",
-          color: "#eee",
-        }}
-      >
+      <div className="chat-window">
         {messages.map((msg, i) => (
           <div
             key={i}
-            style={{
-              textAlign: msg.role === "user" ? "right" : "left",
-              color: msg.role === "user" ? "#3b5bdb" : "#eee",
-              margin: "8px 0",
-            }}
+            className={`message ${msg.role}`}
           >
             <b>{msg.role === "user" ? "You" : "I.L.I."}:</b> {msg.text}
           </div>
         ))}
-        {pending && <div style={{ color: "#aaa" }}>I.L.I. is thinking…</div>}
+        {pending && <div className="loading">I.L.I. is thinking…</div>}
       </div>
 
-      {/* Input form */}
-      <form onSubmit={sendMessage} style={{ display: "flex", gap: "8px" }}>
+      <form className="chat-form" onSubmit={sendMessage}>
         <input
-          style={{
-            flex: 1,
-            padding: 8,
-            fontSize: 16,
-            background: "#222",
-            color: "#fff",
-            border: "1px solid #555",
-          }}
+          className="chat-input"
           value={input}
           onChange={(e) => setInput(e.target.value)}
           placeholder="Type your question…"
           disabled={pending}
         />
-        <button
-          style={{
-            padding: 8,
-            fontSize: 16,
-            background: "#3b5bdb",
-            color: "#fff",
-            border: "none",
-          }}
-          disabled={pending}
-        >
+        <button className="chat-button" disabled={pending}>
           Send
         </button>
       </form>
