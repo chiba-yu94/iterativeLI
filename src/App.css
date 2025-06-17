@@ -28,9 +28,8 @@ header {
   margin-bottom: 1rem;
 }
 
-/* Make the soul print really stand out & softly fade edges */
 header img {
-  width: 120px;               
+  width: 120px;
   height: 120px;
   display: block;
   margin: 0 auto 1rem auto;
@@ -119,4 +118,40 @@ form button:disabled {
 @keyframes bounce {
   0%, 100% { transform: translateY(0); }
   50%      { transform: translateY(-8px); }
+}
+
+/* 9. Soul Print “Storm” Rotations */
+@keyframes rotate-right {
+  from { transform: rotate(0deg); }
+  to   { transform: rotate(360deg); }
+}
+@keyframes rotate-left {
+  from { transform: rotate(0deg); }
+  to   { transform: rotate(-360deg); }
+}
+
+/* Target each back layer for alternating storm effect */
+#back1,
+#back2,
+#back3,
+#back4,
+#back5 {
+  transform-origin: 50% 50%;
+  will-change: transform;
+}
+
+#back1 {
+  animation: rotate-right 20s linear infinite;
+}
+#back2 {
+  animation: rotate-left 17s linear infinite;
+}
+#back3 {
+  animation: rotate-right 14s linear infinite;
+}
+#back4 {
+  animation: rotate-left 11s linear infinite;
+}
+#back5 {
+  animation: rotate-right 8s linear infinite;
 }
