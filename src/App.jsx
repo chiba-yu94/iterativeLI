@@ -23,13 +23,11 @@ function App() {
       });
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const data = await res.json();
-
       setMessages((msgs) => [
         ...msgs,
         { role: "bot", text: data.reply || "…" },
       ]);
-    } catch (err) {
-      console.error("Error fetching /api/chat:", err);
+    } catch {
       setMessages((msgs) => [
         ...msgs,
         { role: "bot", text: "Oops—something went wrong. Try again." },
@@ -53,10 +51,7 @@ function App() {
 
       <div className="chat-window">
         {messages.map((msg, i) => (
-          <div
-            key={i}
-            className={`message ${msg.role}`}
-          >
+          <div key={i} className={`message ${msg.role}`}>
             <b>{msg.role === "user" ? "You" : "I.L.I."}:</b> {msg.text}
           </div>
         ))}
@@ -65,7 +60,7 @@ function App() {
 
       <form className="chat-form" onSubmit={sendMessage}>
         <input
-          className="chat-input"
+          className="chat-input"      
           value={input}
           onChange={(e) => setInput(e.target.value)}
           placeholder="Type your question…"
