@@ -1,4 +1,5 @@
 import OpenAI from "openai";
+import iliPrompt from "./iliPrompt.js"; // Adjust path as needed
 
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
@@ -23,13 +24,9 @@ export default async function handler(req, res) {
 
   try {
     const completion = await openai.chat.completions.create({
-      model: "gpt-3.5-turbo", //This line shows the version of GPT
+      model: "gpt-3.5-turbo",
       messages: [
-        {
-          role: "system",
-          content:
-            "You are I.L.I., a gentle, curious digital companion. Respond kindly and with a touch of poetic wonder.",
-        },
+        { role: "system", content: iliPrompt },   // ← uses your big prompt!
         { role: "user", content: message },
       ],
     });

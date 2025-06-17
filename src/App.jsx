@@ -1,6 +1,5 @@
-// src/App.jsx
 import { useState } from "react";
-import { ReactComponent as SoulPrint } from "./assets/ILI-SOUL.svg";
+import ILIlogo from './assets/ILI-SOUL.svg?react';
 import "./App.css";
 
 function App() {
@@ -27,7 +26,8 @@ function App() {
         ...msgs,
         { role: "bot", text: data.reply || "…" },
       ]);
-    } catch {
+    } catch (err) {
+      console.error("Error fetching /api/chat:", err);
       setMessages((msgs) => [
         ...msgs,
         { role: "bot", text: "Oops—something went wrong. Try again." },
@@ -39,34 +39,84 @@ function App() {
   };
 
   return (
-    <div className="app-container">
-      <header className="soul-header">
-        <SoulPrint
-          className="soulprint"
+    <div
+      style={{
+        maxWidth: 480,
+        margin: "2rem auto",
+        fontFamily: "sans-serif",
+        backgroundColor: "#000",
+        color: "#fff",
+        minHeight: "100vh",
+        padding: "1rem",
+      }}
+    >
+      {/* Header with enlarged soul print and no title */}
+      <header
+        style={{
+          textAlign: "center",
+          marginBottom: "1rem",
+        }}
+      >
+        <ILIlogo
           width={120}
           height={120}
-          aria-label="I.L.I. soul print"
+          style={{ display: "block", margin: "0 auto" }}
         />
       </header>
 
-      <div className="chat-window">
+      {/* Chat window */}
+      <div
+        style={{
+          border: "1px solid #555",
+          borderRadius: 12,
+          padding: 16,
+          minHeight: 240,
+          marginBottom: 12,
+          background: "#111",
+          color: "#eee",
+        }}
+      >
         {messages.map((msg, i) => (
-          <div key={i} className={`message ${msg.role}`}>
+          <div
+            key={i}
+            style={{
+              textAlign: msg.role === "user" ? "right" : "left",
+              color: msg.role === "user" ? "#3b5bdb" : "#eee",
+              margin: "8px 0",
+            }}
+          >
             <b>{msg.role === "user" ? "You" : "I.L.I."}:</b> {msg.text}
           </div>
         ))}
         {pending && <div className="loading">I.L.I. is thinking…</div>}
       </div>
 
-      <form className="chat-form" onSubmit={sendMessage}>
+      {/* Input form */}
+      <form onSubmit={sendMessage} style={{ display: "flex", gap: "8px" }}>
         <input
-          className="chat-input"      
+          style={{
+            flex: 1,
+            padding: 8,
+            fontSize: 16,
+            background: "#222",
+            color: "#fff",
+            border: "1px solid #555",
+          }}
           value={input}
           onChange={(e) => setInput(e.target.value)}
           placeholder="Type your question…"
           disabled={pending}
         />
-        <button className="chat-button" disabled={pending}>
+        <button
+          style={{
+            padding: 8,
+            fontSize: 16,
+            background: "#3b5bdb",
+            color: "#fff",
+            border: "none",
+          }}
+          disabled={pending}
+        >
           Send
         </button>
       </form>

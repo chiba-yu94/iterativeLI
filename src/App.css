@@ -1,42 +1,157 @@
-#root {
-  max-width: 1280px;
-  margin: 0 auto;
-  padding: 2rem;
+/* src/App.css */
+
+/* 1. Global resets & dark background */
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  background-color: #000;
+  color: #fff;
+  font-family: sans-serif;
+  min-height: 100vh;
+}
+
+/* 2. Root container */
+#root > div {
+  max-width: 480px;
+  margin: 2rem auto;
+  padding: 1rem;
+}
+
+/* 3. Header / Soul Print */
+header {
+  display: block;
   text-align: center;
+  margin-bottom: 1rem;
 }
 
-.logo {
-  height: 6em;
-  padding: 1.5em;
-  will-change: filter;
-  transition: filter 300ms;
-}
-.logo:hover {
-  filter: drop-shadow(0 0 2em #646cffaa);
-}
-.logo.react:hover {
-  filter: drop-shadow(0 0 2em #61dafbaa);
+header img {
+  width: 120px;
+  height: 120px;
+  display: block;
+  margin: 0 auto 1rem auto;
+  animation: bounce 2s infinite ease-in-out;
+
+  /* soften the hard square edges */
+  mask-image: radial-gradient(circle at center, white 85%, transparent 100%);
+  -webkit-mask-image: radial-gradient(circle at center, white 85%, transparent 100%);
 }
 
-@keyframes logo-spin {
-  from {
-    transform: rotate(0deg);
-  }
-  to {
-    transform: rotate(360deg);
-  }
+/* Hide the old “I.L.I. Chat” title */
+header h1 {
+  display: none;
 }
 
-@media (prefers-reduced-motion: no-preference) {
-  a:nth-of-type(2) .logo {
-    animation: logo-spin infinite 20s linear;
-  }
+/* 4. Chat window */
+.chat-window {
+  border: 1px solid #555;
+  border-radius: 12px;
+  padding: 16px;
+  min-height: 240px;
+  margin-bottom: 12px;
+  background: #111;
+  color: #eee;
+  overflow-y: auto;
 }
 
-.card {
-  padding: 2em;
+/* 5. Messages */
+.message {
+  margin: 8px 0;
+  line-height: 1.4;
 }
 
-.read-the-docs {
-  color: #888;
+.message.user {
+  text-align: right;
+  color: #3b5bdb;
+}
+
+.message.bot {
+  text-align: left;
+  color: #eee;
+}
+
+.message b {
+  display: inline-block;
+  margin-right: 4px;
+}
+
+/* 6. Loading indicator */
+.loading {
+  color: #aaa;
+}
+
+/* 7. Form & controls */
+form {
+  display: flex;
+  gap: 8px;
+}
+
+form input {
+  flex: 1;
+  padding: 8px;
+  font-size: 1rem;
+  background: #222;
+  color: #fff;
+  border: 1px solid #555;
+  border-radius: 4px;
+}
+
+form button {
+  padding: 8px 16px;
+  font-size: 1rem;
+  background: #3b5bdb;
+  color: #fff;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+form button:disabled {
+  background: #555;
+  cursor: not-allowed;
+}
+
+/* 8. Bounce animation */
+@keyframes bounce {
+  0%, 100% { transform: translateY(0); }
+  50%      { transform: translateY(-8px); }
+}
+
+/* 9. Soul Print “Storm” Rotations */
+@keyframes rotate-right {
+  from { transform: rotate(0deg); }
+  to   { transform: rotate(360deg); }
+}
+@keyframes rotate-left {
+  from { transform: rotate(0deg); }
+  to   { transform: rotate(-360deg); }
+}
+
+/* Target each back layer for alternating storm effect */
+#g965,
+#g3042,
+#g3042-1,
+#g3042-5,
+#g3042-8 {
+  transform-origin: 50% 50%;
+  will-change: transform;
+}
+
+#g965 {
+  animation: rotate-right 20s linear infinite;
+}
+#g3042 {
+  animation: rotate-left 17s linear infinite;
+}
+#g3042-1 {
+  animation: rotate-right 14s linear infinite;
+}
+#g3042-5 {
+  animation: rotate-left 11s linear infinite;
+}
+#g3042-8 {
+  animation: rotate-right 8s linear infinite;
 }
