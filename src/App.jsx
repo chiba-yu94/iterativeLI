@@ -50,7 +50,7 @@ function App() {
         padding: "1rem",
       }}
     >
-      {/* Header with soul print and a test SVG circle */}
+      {/* Header with soul print */}
       <header
         style={{
           textAlign: "center",
@@ -62,10 +62,6 @@ function App() {
           height={120}
           style={{ display: "block", margin: "0 auto" }}
         />
-        {/* Test SVG: this should show a cyan circle */}
-        <svg width={120} height={120} viewBox="0 0 120 120" style={{ margin: "1rem auto", display: "block" }}>
-          <circle cx="60" cy="60" r="50" fill="cyan" />
-        </svg>
       </header>
 
       {/* Chat window */}
@@ -117,15 +113,3 @@ function App() {
             fontSize: 16,
             background: "#3b5bdb",
             color: "#fff",
-            border: "none",
-          }}
-          disabled={pending}
-        >
-          Send
-        </button>
-      </form>
-    </div>
-  );
-}
-
-export default App;
