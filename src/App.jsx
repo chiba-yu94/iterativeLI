@@ -1,16 +1,5 @@
 import { useState } from "react";
-// App.jsx
 import { ReactComponent as SoulPrint } from './assets/ILI-SOUL.svg';
-
-export default function App() {
-  return (
-    <div>
-      <SoulPrint width={120} height={120} />
-      {/* rest of your app */}
-    </div>
-  );
-}
-
 import "./App.css";
 
 function App() {
@@ -68,7 +57,7 @@ function App() {
           marginBottom: "1rem",
         }}
       >
-        <ILIlogo
+        <SoulPrint
           width={120}
           height={120}
           style={{ display: "block", margin: "0 auto" }}
