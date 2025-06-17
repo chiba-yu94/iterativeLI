@@ -60,7 +60,7 @@ function App() {
 
       <form className="chat-form" onSubmit={sendMessage}>
         <input
-          className="chat-input"      
+          className="chat-input"
           value={input}
           onChange={(e) => setInput(e.target.value)}
           placeholder="Type your question…"
