@@ -58,9 +58,9 @@ function App() {
         }}
       >
         <SoulPrint
-          width={120}
-          height={120}
-          style={{ display: "block", margin: "0 auto" }}
+          <svg width={120} height={120} viewBox="0 0 120 120">
+            <circle cx="60" cy="60" r="50" fill="cyan" />
+              </svg>
         />
       </header>
 
