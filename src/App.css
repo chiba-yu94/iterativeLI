@@ -14,21 +14,22 @@ body {
   min-height: 100vh;
 }
 
-/* 2. Root container */
-#root > div {
+/* 2. App container */
+.app-container {
   max-width: 480px;
   margin: 2rem auto;
   padding: 1rem;
+  background-color: #000;
+  color: #fff;
 }
 
 /* 3. Header / Soul Print */
-header {
-  display: block;
+.soul-header {
   text-align: center;
   margin-bottom: 1rem;
 }
 
-header img {
+.soulprint {
   width: 120px;
   height: 120px;
   display: block;
@@ -38,11 +39,6 @@ header img {
   /* soften the hard square edges */
   mask-image: radial-gradient(circle at center, white 85%, transparent 100%);
   -webkit-mask-image: radial-gradient(circle at center, white 85%, transparent 100%);
-}
-
-/* Hide the old “I.L.I. Chat” title */
-header h1 {
-  display: none;
 }
 
 /* 4. Chat window */
@@ -73,23 +69,19 @@ header h1 {
   color: #eee;
 }
 
-.message b {
-  display: inline-block;
-  margin-right: 4px;
-}
-
 /* 6. Loading indicator */
 .loading {
   color: #aaa;
+  margin-top: 8px;
 }
 
 /* 7. Form & controls */
-form {
+.chat-form {
   display: flex;
   gap: 8px;
 }
 
-form input {
+.chat-input {
   flex: 1;
   padding: 8px;
   font-size: 1rem;
@@ -99,7 +91,7 @@ form input {
   border-radius: 4px;
 }
 
-form button {
+.chat-button {
   padding: 8px 16px;
   font-size: 1rem;
   background: #3b5bdb;
@@ -109,7 +101,7 @@ form button {
   cursor: pointer;
 }
 
-form button:disabled {
+.chat-button:disabled {
   background: #555;
   cursor: not-allowed;
 }
@@ -130,7 +122,6 @@ form button:disabled {
   to   { transform: rotate(-360deg); }
 }
 
-/* Target each back layer for alternating storm effect */
 #back1,
 #back2,
 #back3,
@@ -140,18 +131,8 @@ form button:disabled {
   will-change: transform;
 }
 
-#back1 {
-  animation: rotate-right 20s linear infinite;
-}
-#back2 {
-  animation: rotate-left 17s linear infinite;
-}
-#back3 {
-  animation: rotate-right 14s linear infinite;
-}
-#back4 {
-  animation: rotate-left 11s linear infinite;
-}
-#back5 {
-  animation: rotate-right 8s linear infinite;
-}
+#back1 { animation: rotate-right 20s linear infinite; }
+#back2 { animation: rotate-left  17s linear infinite; }
+#back3 { animation: rotate-right 14s linear infinite; }
+#back4 { animation: rotate-left  11s linear infinite; }
+#back5 { animation: rotate-right  8s  linear infinite; }
