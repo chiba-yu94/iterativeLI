@@ -13,26 +13,20 @@ export default function ChatBox({ messages, leavingMsg, pending }) {
 
   return (
     <div
-      className="chat-window"
       style={{
-        border: "1px solid #555",
-        borderRadius: 12,
-        padding: 16,
         minHeight: 80,
-        marginBottom: 12,
-        background: "#111",
-        color: "#eee",
+        marginBottom: 20,
         width: "100%",
-        boxSizing: "border-box",
-        overflowWrap: "break-word",
-        position: "relative",
-        height: 100,
+        maxWidth: 480,
+        marginLeft: "auto",
+        marginRight: "auto",
         display: "flex",
         flexDirection: "column",
-        justifyContent: "flex-end",
-        overflow: "hidden"
+        alignItems: "stretch",
+        position: "relative",
       }}
     >
+      {/* Floating out, fading up */}
       {leavingMsg && (
         <div
           key={leavingMsg.text + "_leaving"}
@@ -43,7 +37,7 @@ export default function ChatBox({ messages, leavingMsg, pending }) {
             position: "absolute",
             left: 0,
             right: 0,
-            bottom: 16,
+            bottom: 0,
             pointerEvents: "none",
             zIndex: 1,
           }}
@@ -51,6 +45,7 @@ export default function ChatBox({ messages, leavingMsg, pending }) {
           <b>{leavingMsg.role === "user" ? "You" : "I.L.I."}:</b> {leavingMsg.text}
         </div>
       )}
+      {/* Newest message, fade in from below */}
       {messages.length > 0 ? (
         <div
           key={messages[messages.length - 1].text}
