@@ -1,5 +1,16 @@
 import { useState } from "react";
-import ILIlogo from './assets/ILI-SOUL.svg?react';
+// App.jsx
+import { ReactComponent as SoulPrint } from './assets/ILI-SOUL.svg';
+
+export default function App() {
+  return (
+    <div>
+      <SoulPrint width={120} height={120} />
+      {/* rest of your app */}
+    </div>
+  );
+}
+
 import "./App.css";
 
 function App() {
