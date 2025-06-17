@@ -26,6 +26,15 @@ body {
   flex-direction: column;
 }
 
+form {
+  display: flex;
+  gap: 8px;
+  width: 100%;
+  box-sizing: border-box;
+  margin-top: 10px;
+}
+
+
 /* Responsive for mobile screens */
 @media (max-width: 600px) {
   #root > div,
@@ -199,6 +208,35 @@ form button:disabled {
 .soulprint-storm-slow #g3042-8 {
   animation-duration: 16s !important;
 }
+
+/* Animate back layers expanding/contracting as if breathing while talking */
+@keyframes soulprintStormPulse {
+  0%   { transform: scale(1) rotate(0deg);}
+  50%  { transform: scale(1.14) rotate(10deg);}
+  100% { transform: scale(1) rotate(0deg);}
+}
+
+.soulprint-core-glow #g965 {
+  animation: soulprintStormPulse 2.1s ease-in-out infinite,
+             rotate-right 40s linear infinite;
+}
+.soulprint-core-glow #g3042 {
+  animation: soulprintStormPulse 2.1s ease-in-out infinite,
+             rotate-left 34s linear infinite;
+}
+.soulprint-core-glow #g3042-1 {
+  animation: soulprintStormPulse 2.1s ease-in-out infinite,
+             rotate-right 28s linear infinite;
+}
+.soulprint-core-glow #g3042-5 {
+  animation: soulprintStormPulse 2.1s ease-in-out infinite,
+             rotate-left 22s linear infinite;
+}
+.soulprint-core-glow #g3042-8 {
+  animation: soulprintStormPulse 2.1s ease-in-out infinite,
+             rotate-right 16s linear infinite;
+}
+
 
 /* 9. SoulPrint Glow Animation — wide, breathing, circular aura */
 #g924,
