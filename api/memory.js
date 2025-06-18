@@ -1,7 +1,7 @@
 // /api/memory.js
 const DIFY_API_KEY = process.env.DIFY_API_KEY;
 const DIFY_API_URL = process.env.DIFY_API_URL || "https://api.dify.ai/v1";
-const DIFY_DATASET_ID = process.env.DIFY_DATASET_ID; // e.g. "3a101068-7573-4354-a7b5-5a85c52ca746"
+const DIFY_DATASET_ID = process.env.DIFY_DATASET_ID;
 const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
 
 function getHeaders() {
@@ -77,8 +77,21 @@ ${JSON.stringify(chatLog)}
   return data.choices?.[0]?.message?.content?.trim() || "";
 }
 
-// Main API handler
+// Main API handler (ONLY ONE export default function!)
 export default async function handler(req, res) {
+  // Debug: Print incoming method and key environment vars
+  console.log("METHOD:", req.method);
+  console.log("DIFY_API_KEY:", !!DIFY_API_KEY);
+  console.log("DIFY_DATASET_ID:", !!DIFY_DATASET_ID);
+  console.log("OPENAI_API_KEY:", !!OPENAI_API_KEY);
+
+  if (!DIFY_API_KEY || !DIFY_DATASET_ID || !OPENAI_API_KEY) {
+    res.status(500).json({
+      error: "Missing one or more required environment variables. Check DIFY_API_KEY, DIFY_DATASET_ID, OPENAI_API_KEY."
+    });
+    return;
+  }
+
   if (req.method === "POST") {
     const { summary, chatLog, metadata } = req.body;
     try {
@@ -90,6 +103,7 @@ export default async function handler(req, res) {
       const result = await saveMemory(finalSummary, metadata);
       res.status(200).json(result);
     } catch (err) {
+      console.error("Handler error:", err);
       res.status(500).json({ error: err.message });
     }
   } else if (req.method === "GET") {
@@ -97,6 +111,7 @@ export default async function handler(req, res) {
       const memories = await getMemories(req.query);
       res.status(200).json(memories);
     } catch (err) {
+      console.error("Handler error:", err);
       res.status(500).json({ error: err.message });
     }
   } else {
