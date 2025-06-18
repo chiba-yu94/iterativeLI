@@ -21,7 +21,7 @@ async function saveMemory(summary, metadata = {}) {
       body: JSON.stringify({
         name: metadata.date || new Date().toISOString(),
         text: summary,
-        // indexing_technique: "economical",
+        indexing_technique: "economy",
         process_rule: { mode: "automatic" }
       })
     }
