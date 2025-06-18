@@ -75,10 +75,11 @@ export default function App() {
       }}
     >
       <header style={{ textAlign: "center", marginBottom: "1rem" }}>
-        <SoulPrint
-          slowStorm={input.length > 0 && !pending}
-          coreGlow={pending}
-        />
+    <SoulPrint
+      slowStorm={input.length > 0 && !pending}
+      coreGlow={pending}
+      breathing={pending}
+    />
       </header>
       <ChatArea
         messages={messages}
