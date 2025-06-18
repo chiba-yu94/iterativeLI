@@ -1,30 +1,26 @@
 import { useState } from "react";
 import SoulPrint from "./SoulPrint";
-import OpenChatLine from "./OpenChatLine";
-import ChatLog from "./ChatLog";
-import SaveReflectionButton from "./SaveReflectionButton";
-import ReflectionLog from "./ReflectionLog";
-import WeeklyReflectionButton from "./WeeklyReflectionButton";
+import ChatArea from "./ChatArea";
+import MemoryControls from "./MemoryControls";
 import "./App.css";
 
 export default function App() {
   const [messages, setMessages] = useState([]);
-  const [input, setInput] = useState("");
   const [pending, setPending] = useState(false);
+  const [input, setInput] = useState("");
   const [partialReply, setPartialReply] = useState("");
-  const [showLog, setShowLog] = useState(false);
   const [reloadFlag, setReloadFlag] = useState(false);
 
-  const WORD_INTERVAL = 90; // ms per word (adjust as you like)
-
+  // Reveal reply word by word
+  const WORD_INTERVAL = 90;
   const revealReply = (fullText) => {
     const words = fullText.split(" ");
     setPartialReply("");
-    let index = 0;
+    let idx = 0;
     const showNextWord = () => {
-      if (index < words.length) {
-        setPartialReply((prev) => prev + (prev ? " " : "") + words[index]);
-        index++;
+      if (idx < words.length) {
+        setPartialReply((prev) => prev + (prev ? " " : "") + words[idx]);
+        idx++;
         setTimeout(showNextWord, WORD_INTERVAL);
       } else {
         setMessages((msgs) => [...msgs, { role: "bot", text: fullText }]);
@@ -35,12 +31,12 @@ export default function App() {
     showNextWord();
   };
 
+  // Send message
   const sendMessage = async (e) => {
     e.preventDefault();
     if (!input.trim()) return;
     setMessages((msgs) => [...msgs, { role: "user", text: input }]);
     setPending(true);
-
     try {
       const res = await fetch("/api/chat", {
         method: "POST",
@@ -50,25 +46,16 @@ export default function App() {
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const data = await res.json();
       revealReply(data.reply || "…");
-    } catch (err) {
+    } catch {
       setMessages((msgs) => [
         ...msgs,
         { role: "bot", text: "Oops—something went wrong. Try again." },
       ]);
-      setPending(false);
       setPartialReply("");
+      setPending(false);
     }
-
     setInput("");
   };
-
-  const lastTwo = (() => {
-    if (pending && partialReply) {
-      let prev = messages.length > 0 ? messages[messages.length - 1] : null;
-      return [prev, { role: "bot", text: partialReply }].filter(Boolean);
-    }
-    return messages.slice(-2);
-  })();
 
   return (
     <div
@@ -78,11 +65,9 @@ export default function App() {
       }
       style={{
         maxWidth: 480,
-        width: "100%",
-        minWidth: 0,
         margin: "2rem auto",
         fontFamily: "sans-serif",
-        backgroundColor: "#000",
+        background: "#000",
         color: "#fff",
         minHeight: "100vh",
         padding: "1rem",
@@ -95,69 +80,20 @@ export default function App() {
           coreGlow={pending}
         />
       </header>
-
-      <div>
-        {lastTwo.map((msg, idx) => (
-          <OpenChatLine key={idx} msg={msg} />
-        ))}
-        {pending && !partialReply && (
-          <div className="loading">I.L.I. is thinking…</div>
-        )}
-      </div>
-
-      <form onSubmit={sendMessage} style={{ display: "flex", gap: "8px", marginTop: 18 }}>
-        <input
-          style={{
-            flex: 1,
-            padding: 8,
-            fontSize: 16,
-            background: "#222",
-            color: "#fff",
-            border: "1px solid #555",
-          }}
-          value={input}
-          onChange={(e) => setInput(e.target.value)}
-          placeholder="Type your question…"
-          disabled={pending}
-        />
-        <button
-          style={{
-            padding: 8,
-            fontSize: 16,
-            background: "#3b5bdb",
-            color: "#fff",
-            border: "none",
-          }}
-          disabled={pending}
-        >
-          Send
-        </button>
-      </form>
-
-      {/* Modular Dify memory controls */}
-      <SaveReflectionButton
+      <ChatArea
+        messages={messages}
+        partialReply={partialReply}
+        pending={pending}
+        input={input}
+        setInput={setInput}
+        sendMessage={sendMessage}
+      />
+      <MemoryControls
         messages={messages}
         pending={pending}
-        onSaved={() => setReloadFlag((v) => !v)}
+        reloadFlag={reloadFlag}
+        setReloadFlag={setReloadFlag}
       />
-      <ReflectionLog reloadFlag={reloadFlag} />
-      <WeeklyReflectionButton onSaved={() => setReloadFlag((v) => !v)} />
-
-      <button
-        style={{
-          margin: "18px auto 0 auto",
-          display: "block",
-          background: "none",
-          color: "#ccc",
-          border: "none",
-          fontSize: "1rem",
-          cursor: "pointer",
-        }}
-        onClick={() => setShowLog((v) => !v)}
-      >
-        {showLog ? "Hide Conversation Log" : "Show Conversation Log"}
-      </button>
-      {showLog && <ChatLog messages={messages} />}
     </div>
   );
 }
