@@ -1,4 +1,4 @@
-import { saveMemory, getMemories } from '../utils/difyMemory';
+import { saveMemory, getMemories } from '../utils/difyMemory.js';
 const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
 
 // Summarize chat log with OpenAI
