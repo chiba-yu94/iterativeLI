@@ -1,8 +1,8 @@
-// utils/memory.js
-
+// utils/difyMemory.js
 const DIFY_API_KEY = process.env.DIFY_API_KEY;
 const DIFY_API_URL = process.env.DIFY_API_URL || "https://api.dify.ai/v1";
 
+// Save a summary to Dify memory
 export async function saveMemory(summary, metadata = {}) {
   const res = await fetch(`${DIFY_API_URL}/documents`, {
     method: "POST",
@@ -22,6 +22,7 @@ export async function saveMemory(summary, metadata = {}) {
   return res.json();
 }
 
+// Get list of memories (optionally filter by params)
 export async function getMemories(params = {}) {
   const url = new URL(`${DIFY_API_URL}/documents`);
   Object.entries(params).forEach(([key, value]) => url.searchParams.append(key, value));
