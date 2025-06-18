@@ -1,12 +1,12 @@
-import { saveMemory, getMemories } from '../../utils/difyMemory'; // or memoryUtils, per your naming
+import { saveMemory, getMemories } from '../../utils/difyMemory';
 const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
 
-// Util: Summarize chat log with OpenAI
+// Summarize chat log with OpenAI
 async function summarizeChat(chatLog) {
   const prompt = `
 Summarize this conversation between I.L.I. and the user.
-Focus on important topics, changes in mood, and new insights.
-Return 3-5 sentences in plain English.
+Focus on important topics, emotional shifts, and new insights.
+Give 3-5 sentences in plain English.
 
 ${JSON.stringify(chatLog)}
   `;
