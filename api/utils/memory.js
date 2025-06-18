@@ -1,7 +1,9 @@
+// utils/memory.js
+
 const DIFY_API_KEY = process.env.DIFY_API_KEY;
 const DIFY_API_URL = process.env.DIFY_API_URL || "https://api.dify.ai/v1";
 
-export async function saveMemory(summary, meta = {}) {
+export async function saveMemory(summary, metadata = {}) {
   const res = await fetch(`${DIFY_API_URL}/documents`, {
     method: "POST",
     headers: {
@@ -10,11 +12,28 @@ export async function saveMemory(summary, meta = {}) {
     },
     body: JSON.stringify({
       content: summary,
-      metadata: meta
+      metadata: metadata
     })
   });
-  if (!res.ok) throw new Error("Failed to save memory: " + res.status);
+  if (!res.ok) {
+    const text = await res.text();
+    throw new Error(`Dify save failed: ${res.status} - ${text}`);
+  }
   return res.json();
 }
 
-// More functions: fetchMemory, listMemories, etc.
+export async function getMemories(params = {}) {
+  const url = new URL(`${DIFY_API_URL}/documents`);
+  Object.entries(params).forEach(([key, value]) => url.searchParams.append(key, value));
+  const res = await fetch(url, {
+    headers: {
+      "Authorization": `Bearer ${DIFY_API_KEY}`,
+      "Content-Type": "application/json"
+    }
+  });
+  if (!res.ok) {
+    const text = await res.text();
+    throw new Error(`Dify fetch failed: ${res.status} - ${text}`);
+  }
+  return res.json();
+}
