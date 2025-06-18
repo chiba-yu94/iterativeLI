@@ -2,6 +2,9 @@ import { useState } from "react";
 import SoulPrint from "./SoulPrint";
 import OpenChatLine from "./OpenChatLine";
 import ChatLog from "./ChatLog";
+import SaveReflectionButton from "./SaveReflectionButton";
+import ReflectionLog from "./ReflectionLog";
+import WeeklyReflectionButton from "./WeeklyReflectionButton";
 import "./App.css";
 
 export default function App() {
@@ -10,6 +13,7 @@ export default function App() {
   const [pending, setPending] = useState(false);
   const [partialReply, setPartialReply] = useState("");
   const [showLog, setShowLog] = useState(false);
+  const [reloadFlag, setReloadFlag] = useState(false);
 
   const WORD_INTERVAL = 90; // ms per word (adjust as you like)
 
@@ -129,6 +133,15 @@ export default function App() {
           Send
         </button>
       </form>
+
+      {/* Modular Dify memory controls */}
+      <SaveReflectionButton
+        messages={messages}
+        pending={pending}
+        onSaved={() => setReloadFlag((v) => !v)}
+      />
+      <ReflectionLog reloadFlag={reloadFlag} />
+      <WeeklyReflectionButton onSaved={() => setReloadFlag((v) => !v)} />
 
       <button
         style={{
