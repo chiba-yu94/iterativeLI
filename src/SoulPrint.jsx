@@ -1,6 +1,6 @@
 import { ReactComponent as SoulPrintSVG } from './assets/ILI-SOUL.svg';
 
-export default function SoulPrint({ slowStorm, coreGlow }) {
+export default function SoulPrint({ slowStorm, coreGlow, breathing }) {
   let className = "soulprint-svg";
   if (slowStorm) className += " soulprint-storm-slow";
   if (breathing) className += " soulprint-storm-breathing";
