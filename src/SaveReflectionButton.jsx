@@ -13,7 +13,8 @@ export default function SaveReflectionButton({ messages, pending, onSaved }) {
         metadata: {
           date: new Date().toISOString().split("T")[0],
           type: "daily_summary"
-        }
+        },
+        updateProfile: true
       })
     });
     setSaving(false);
