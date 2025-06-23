@@ -1,5 +1,6 @@
 import OpenAI from "openai";
-import iliPrompt from "./iliPrompt.js"; // Adjust path as needed
+import iliPrompt from "./iliPrompt.js";
+import { getProfile } from "./memory.js"; // Make sure path is correct
 
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
@@ -23,10 +24,24 @@ export default async function handler(req, res) {
   }
 
   try {
+    // -- NEW: Fetch profiles from memory --
+    const userProfile = await getProfile("user_profile");
+    const iliProfile = await getProfile("ili_profile");
+
+    const systemPrompt = `
+${iliPrompt}
+
+[User Profile]
+${userProfile || "No user profile yet."}
+
+[ILI Profile]
+${iliProfile || "No ILI profile yet."}
+`;
+
     const completion = await openai.chat.completions.create({
       model: "gpt-3.5-turbo",
       messages: [
-        { role: "system", content: iliPrompt },   // ← uses your big prompt!
+        { role: "system", content: systemPrompt },
         { role: "user", content: message },
       ],
     });
