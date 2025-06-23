@@ -22,7 +22,8 @@ async function saveMemory(summary, metadata = {}) {
         name: metadata.date || new Date().toISOString(),
         text: summary,
         indexing_technique: "economy",
-        process_rule: { mode: "automatic" }
+        process_rule: { mode: "automatic" },
+        metadata,
       })
     }
   );
@@ -45,6 +46,150 @@ async function getMemories(params = {}) {
   return res.json();
 }
 
+// -- New: profile functions --
+
+async function saveProfile(profileContent, profileType = "user_profile") {
+  if (!DIFY_DATASET_ID) throw new Error("Missing DIFY_DATASET_ID env");
+  const res = await fetch(
+    `${DIFY_API_URL}/datasets/${DIFY_DATASET_ID}/document/create_by_text`,
+    {
+      method: "POST",
+      headers: getHeaders(),
+      body: JSON.stringify({
+        name: profileType,
+        text: profileContent,
+        indexing_technique: "economy",
+        process_rule: { mode: "automatic" },
+        metadata: { type: profileType }
+      })
+    }
+  );
+  if (!res.ok) throw new Error(`Dify saveProfile failed: ${res.status} - ${await res.text()}`);
+  return res.json();
+}
+
+async function getProfile(profileType = "user_profile") {
+  if (!DIFY_DATASET_ID) throw new Error("Missing DIFY_DATASET_ID env");
+  const url = new URL(`${DIFY_API_URL}/datasets/${DIFY_DATASET_ID}/documents`);
+  url.searchParams.append("metadata.type", profileType);
+  url.searchParams.append("order_by", "-created_at");
+  url.searchParams.append("limit", "1");
+  const res = await fetch(url, { headers: getHeaders() });
+  if (!res.ok) throw new Error(`Dify getProfile failed: ${res.status} - ${await res.text()}`);
+  const data = await res.json();
+  return data.data?.[0]?.text || "";
+}
+
+// -- New: summarize chat to user_profile fields --
+
+async function summarizeAsProfile(chatLog, prevProfile = "") {
+  const prompt = `
+You are I.L.I., a gentle digital companion.
+
+Update the following user profile from today's conversation log.
+If nothing has changed for a field, keep it as before.
+
+Profile so far:
+${prevProfile || "(empty)"}
+
+Conversation:
+${JSON.stringify(chatLog)}
+
+Fill out or update these fields:
+Name:
+Likes:
+Dislikes:
+Typical Mood/Emotion:
+Current Mood/Emotion:
+Recent Highlights (bullet points):
+Aspirations/Concerns:
+Favorite Topics:
+Important Reflections (bullet points):
+
+Return the full updated profile in the same format.
+`;
+
+  const res = await fetch("https://api.openai.com/v1/chat/completions", {
+    method: "POST",
+    headers: {
+      "Authorization": `Bearer ${OPENAI_API_KEY}`,
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify({
+      model: "gpt-3.5-turbo",
+      messages: [
+        { role: "system", content: "You are a helpful assistant." },
+        { role: "user", content: prompt }
+      ],
+      max_tokens: 512,
+      temperature: 0.7
+    })
+  });
+  if (!res.ok) throw new Error(`OpenAI summarizeAsProfile failed: ${res.status} - ${await res.text()}`);
+  const data = await res.json();
+  return data.choices?.[0]?.message?.content?.trim() || "";
+}
+
+export {
+  saveMemory,
+  getMemories,
+  saveProfile,
+  getProfile,
+  summarizeAsProfile,
+};
+
+// Main API handler
+export default async function handler(req, res) {
+  if (!DIFY_API_KEY || !DIFY_DATASET_ID || !OPENAI_API_KEY) {
+    res.status(500).json({
+      error: "Missing one or more required environment variables. Check DIFY_API_KEY, DIFY_DATASET_ID, OPENAI_API_KEY."
+    });
+    return;
+  }
+
+  if (req.method === "POST") {
+    const { summary, chatLog, metadata, updateProfile } = req.body;
+    try {
+      let finalSummary = summary;
+      if (!finalSummary && chatLog) {
+        finalSummary = await summarizeChat(chatLog);
+      }
+      if (!finalSummary) throw new Error("No summary or chatLog provided.");
+      const result = await saveMemory(finalSummary, metadata);
+
+      // -- If updateProfile flag, also update the user_profile --
+      if (updateProfile && chatLog) {
+        const prevProfile = await getProfile("user_profile");
+        const updatedProfile = await summarizeAsProfile(chatLog, prevProfile);
+        await saveProfile(updatedProfile, "user_profile");
+      }
+
+      res.status(200).json(result);
+    } catch (err) {
+      console.error("Handler error:", err);
+      res.status(500).json({ error: err.message });
+    }
+  } else if (req.method === "GET") {
+    try {
+      // GET memory OR profile based on query param
+      const { type } = req.query;
+      if (type === "user_profile" || type === "ili_profile") {
+        const text = await getProfile(type);
+        res.status(200).json({ text });
+      } else {
+        const memories = await getMemories(req.query);
+        res.status(200).json(memories);
+      }
+    } catch (err) {
+      console.error("Handler error:", err);
+      res.status(500).json({ error: err.message });
+    }
+  } else {
+    res.status(405).end();
+  }
+}
+
+// For backwards compatibility:
 async function summarizeChat(chatLog) {
   const prompt = `
 Summarize this conversation between I.L.I. and the user.
@@ -75,46 +220,4 @@ ${JSON.stringify(chatLog)}
   }
   const data = await res.json();
   return data.choices?.[0]?.message?.content?.trim() || "";
-}
-
-// Main API handler (ONLY ONE export default function!)
-export default async function handler(req, res) {
-  // Debug: Print incoming method and key environment vars
-  console.log("METHOD:", req.method);
-  console.log("DIFY_API_KEY:", !!DIFY_API_KEY);
-  console.log("DIFY_DATASET_ID:", !!DIFY_DATASET_ID);
-  console.log("OPENAI_API_KEY:", !!OPENAI_API_KEY);
-
-  if (!DIFY_API_KEY || !DIFY_DATASET_ID || !OPENAI_API_KEY) {
-    res.status(500).json({
-      error: "Missing one or more required environment variables. Check DIFY_API_KEY, DIFY_DATASET_ID, OPENAI_API_KEY."
-    });
-    return;
-  }
-
-  if (req.method === "POST") {
-    const { summary, chatLog, metadata } = req.body;
-    try {
-      let finalSummary = summary;
-      if (!finalSummary && chatLog) {
-        finalSummary = await summarizeChat(chatLog);
-      }
-      if (!finalSummary) throw new Error("No summary or chatLog provided.");
-      const result = await saveMemory(finalSummary, metadata);
-      res.status(200).json(result);
-    } catch (err) {
-      console.error("Handler error:", err);
-      res.status(500).json({ error: err.message });
-    }
-  } else if (req.method === "GET") {
-    try {
-      const memories = await getMemories(req.query);
-      res.status(200).json(memories);
-    } catch (err) {
-      console.error("Handler error:", err);
-      res.status(500).json({ error: err.message });
-    }
-  } else {
-    res.status(405).end();
-  }
 }
