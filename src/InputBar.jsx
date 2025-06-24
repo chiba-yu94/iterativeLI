@@ -1,9 +1,21 @@
+// InputBar.jsx
 export default function InputBar({ value, onChange, onSubmit, pending }) {
   return (
-    <form onSubmit={onSubmit} style={{ display: "flex", gap: "8px", width: "100%" }}>
+    <form
+      onSubmit={onSubmit}
+      style={{
+        display: "flex",
+        gap: "8px",
+        width: "100%",
+        maxWidth: "100%",
+        boxSizing: "border-box"
+      }}
+    >
       <input
         style={{
           flex: 1,
+          minWidth: 0,
+          maxWidth: "100%",
           padding: 8,
           fontSize: 16,
           background: "#222",
@@ -12,6 +24,7 @@ export default function InputBar({ value, onChange, onSubmit, pending }) {
           borderRadius: 4,
           whiteSpace: "pre-wrap",
           wordBreak: "break-word",
+          boxSizing: "border-box"
         }}
         value={value}
         onChange={onChange}
@@ -26,6 +39,7 @@ export default function InputBar({ value, onChange, onSubmit, pending }) {
           color: "#fff",
           border: "none",
           borderRadius: 4,
+          maxHeight: 42
         }}
         disabled={pending}
       >
