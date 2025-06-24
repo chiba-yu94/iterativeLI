@@ -1,6 +1,7 @@
+// ChatLog.jsx
 export default function ChatLog({ messages, show, onToggle }) {
   return (
-    <div style={{ marginTop: 24, textAlign: "center" }}>
+    <div style={{ marginTop: 24, textAlign: "center", maxWidth: "100%" }}>
       <button
         style={{
           background: "#222",
@@ -32,6 +33,7 @@ export default function ChatLog({ messages, show, onToggle }) {
             boxShadow: "0 2px 12px rgba(0,0,0,0.12)",
             fontSize: "0.98rem",
             width: "100%",
+            maxWidth: "100%", // 🔧 New
             boxSizing: "border-box",
             marginLeft: "auto",
             marginRight: "auto",
@@ -45,6 +47,7 @@ export default function ChatLog({ messages, show, onToggle }) {
               margin: "6px 0",
               whiteSpace: "pre-wrap",
               wordBreak: "break-word",
+              overflowWrap: "break-word",
             }}>
               <b>{msg.role === "user" ? "You" : "I.L.I."}:</b> {msg.text}
             </div>
