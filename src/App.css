@@ -255,8 +255,9 @@ form button:disabled {
 }
 
 #root > div {
-  max-width: 480px;
   width: 100%;
-  overflow-x: hidden;
+  max-width: 100vw;
   box-sizing: border-box;
+  padding: 1rem;
+  overflow-x: hidden;
 }
