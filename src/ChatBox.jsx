@@ -11,8 +11,8 @@ export default function ChatBox({ messages, leavingMsg, pending }) {
     background: "none",
     padding: 0,
     width: "100%",
-    maxWidth: "100%",  // 🔧 Fix width stretch
-    boxSizing: "border-box"
+    maxWidth: "100%",
+    boxSizing: "border-box",
   });
 
   return (
@@ -21,14 +21,14 @@ export default function ChatBox({ messages, leavingMsg, pending }) {
         minHeight: 80,
         marginBottom: 20,
         width: "100%",
-        maxWidth: "100%", // 🔧 Enforce box limit
+        maxWidth: "100%",
         marginLeft: "auto",
         marginRight: "auto",
         display: "flex",
         flexDirection: "column",
         alignItems: "stretch",
         position: "relative",
-        boxSizing: "border-box"
+        boxSizing: "border-box",
       }}
     >
       {leavingMsg && (
