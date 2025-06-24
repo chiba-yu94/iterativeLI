@@ -24,18 +24,15 @@ export default async function handler(req, res) {
   }
 
   try {
-    // Fetch both profiles from memory
-    const userProfile = await getProfile("user_profile");
-    const iliProfile = await getProfile("ili_profile");
+    // Prefer core profile for deep identity, else fallback to latest daily profile
+    let coreProfile = await getProfile("core_profile");
+    if (!coreProfile) coreProfile = await getProfile("daily_profile");
 
     const systemPrompt = `
 ${iliPrompt}
 
-[User Profile]
-${userProfile || "No user profile yet."}
-
-[ILI Profile]
-${iliProfile || "No ILI profile yet."}
+[User Identity Profile]
+${coreProfile || "No long-term profile yet."}
 `;
 
     const completion = await openai.chat.completions.create({
