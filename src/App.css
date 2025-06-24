@@ -35,7 +35,6 @@ form {
   margin-top: 10px;
 }
 
-
 /* Responsive for mobile screens */
 @media (max-width: 600px) {
   #root > div,
@@ -51,6 +50,7 @@ form {
     height: 84px;
   }
 }
+
 /* 3. Header / Soul Print */
 header {
   width: 100%;
