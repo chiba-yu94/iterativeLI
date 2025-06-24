@@ -1,3 +1,4 @@
+// App.jsx
 import { useState } from "react";
 import SoulPrint from "./SoulPrint";
 import ChatArea from "./ChatArea";
@@ -11,7 +12,6 @@ export default function App() {
   const [partialReply, setPartialReply] = useState("");
   const [reloadFlag, setReloadFlag] = useState(false);
 
-  // Reveal reply word by word
   const WORD_INTERVAL = 90;
   const revealReply = (fullText) => {
     const words = fullText.split(" ");
@@ -31,7 +31,6 @@ export default function App() {
     showNextWord();
   };
 
-  // Send message
   const sendMessage = async (e) => {
     e.preventDefault();
     if (!input.trim()) return;
@@ -64,6 +63,7 @@ export default function App() {
         (pending ? "soulprint-core-glow " : "")
       }
       style={{
+        width: "100%",
         maxWidth: 480,
         margin: "2rem auto",
         fontFamily: "sans-serif",
@@ -72,14 +72,15 @@ export default function App() {
         minHeight: "100vh",
         padding: "1rem",
         boxSizing: "border-box",
+        overflowX: "hidden",
       }}
     >
       <header style={{ textAlign: "center", marginBottom: "1rem" }}>
-    <SoulPrint
-      slowStorm={input.length > 0 && !pending}
-      coreGlow={pending}
-      breathing={pending}
-    />
+        <SoulPrint
+          slowStorm={input.length > 0 && !pending}
+          coreGlow={pending}
+          breathing={pending}
+        />
       </header>
       <ChatArea
         messages={messages}
