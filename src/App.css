@@ -98,13 +98,6 @@ header h1 {
 }
 
 /* 5. Input area: always full width of container */
-form {
-  display: flex;
-  gap: 8px;
-  width: 100%;
-  box-sizing: border-box;
-  margin-top: 10px;
-}
 form input {
   flex: 1;
   min-width: 0;
