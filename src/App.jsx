@@ -56,30 +56,30 @@ export default function App() {
     showNextWord();
   };
 
-  const sendMessage = async (e) => {
-    e.preventDefault();
-    if (!input.trim()) return;
-    setMessages((msgs) => [...msgs, { role: "user", text: input }]);
-    setPending(true);
-    try {
-      const res = await fetch("/api/chat", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ message: input }),
-      });
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      const data = await res.json();
-      revealReply(data.reply || "…");
-    } catch {
-      setMessages((msgs) => [
-        ...msgs,
-        { role: "bot", text: "Oops—something went wrong. Try again." },
-      ]);
-      setPartialReply("");
-      setPending(false);
-    }
-    setInput("");
-  };
+const sendMessage = async (e) => {
+  e.preventDefault();
+  if (!input.trim()) return;
+  setMessages((msgs) => [...msgs, { role: "user", text: input }]);
+  setPending(true);
+  try {
+    const res = await fetch("/api/chat", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ message: input }),  // <--- Update this line!
+    });
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const data = await res.json();
+    revealReply(data.reply || "…");
+  } catch {
+    setMessages((msgs) => [
+      ...msgs,
+      { role: "bot", text: "Oops—something went wrong. Try again." },
+    ]);
+    setPartialReply("");
+    setPending(false);
+  }
+  setInput("");
+};
 
   return (
     <MemoryProvider>
