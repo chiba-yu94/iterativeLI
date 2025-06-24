@@ -11,33 +11,27 @@ body {
   min-height: 100vh;
 }
 
-/* 2. Root container: fixed width, always centered */
-#root > div {
+/* ILI layout container */
+.ili-container {
   width: 100%;
   max-width: min(100vw, 480px);
   min-width: 320px;
   margin: 2rem auto;
   padding: 1rem;
-  box-sizing: border-box;
-  border-radius: 18px;
-  min-height: 100vh;
   background: #000;
+  color: #fff;
+  font-family: sans-serif;
   display: flex;
   flex-direction: column;
-  overflow-x: hidden;
-}
-
-form {
-  display: flex;
-  gap: 8px;
-  width: 100%;
+  border-radius: 18px;
   box-sizing: border-box;
-  margin-top: 10px;
+  overflow-x: hidden;
+  min-height: 100vh;
 }
 
 /* Responsive for mobile screens */
 @media (max-width: 600px) {
-  #root > div,
+  .ili-container,
   .collapsible-log {
     max-width: 100vw !important;
     min-width: 0 !important;
@@ -51,7 +45,7 @@ form {
   }
 }
 
-/* 3. Header / Soul Print */
+/* 2. Header / Soul Print */
 header {
   width: 100%;
   text-align: center;
@@ -71,7 +65,7 @@ header h1 {
   display: none;
 }
 
-/* 4. Conversation lines: always fill width, no resizing */
+/* 3. Conversation lines */
 .open-chat-line {
   width: 100%;
   box-sizing: border-box;
@@ -97,7 +91,14 @@ header h1 {
   margin-right: 4px;
 }
 
-/* 5. Input area: always full width of container */
+/* 4. Input area */
+form {
+  display: flex;
+  gap: 8px;
+  width: 100%;
+  box-sizing: border-box;
+  margin-top: 10px;
+}
 form input {
   flex: 1;
   min-width: 0;
@@ -123,14 +124,14 @@ form button:disabled {
   cursor: not-allowed;
 }
 
-/* 6. Loading indicator: always fits container */
+/* 5. Loading indicator */
 .loading {
   color: #aaa;
   width: 100%;
   text-align: center;
 }
 
-/* 7. Chat log viewer: full width, scrollable, looks calm */
+/* 6. Chat log */
 .collapsible-log {
   background: #181833;
   color: #eee;
@@ -147,102 +148,51 @@ form button:disabled {
   box-sizing: border-box;
 }
 
-/* 8. SOULPRINT STORM ANIMATION */
-#g965 {
-  animation: rotate-right 20s linear infinite;
-  transform-origin: 50% 50%;
-  will-change: transform;
-  transition: animation-duration 0.7s;
-}
-#g3042 {
-  animation: rotate-left 17s linear infinite;
-  transform-origin: 50% 50%;
-  will-change: transform;
-  transition: animation-duration 0.7s;
-}
-#g3042-1 {
-  animation: rotate-right 14s linear infinite;
-  transform-origin: 50% 50%;
-  will-change: transform;
-  transition: animation-duration 0.7s;
-}
-#g3042-5 {
-  animation: rotate-left 11s linear infinite;
-  transform-origin: 50% 50%;
-  will-change: transform;
-  transition: animation-duration 0.7s;
-}
-#g3042-8 {
-  animation: rotate-right 8s linear infinite;
-  transform-origin: 50% 50%;
-  will-change: transform;
-  transition: animation-duration 0.7s;
-}
-@keyframes rotate-right {
-  from { transform: rotate(0deg); }
-  to   { transform: rotate(360deg); }
-}
-@keyframes rotate-left {
-  from { transform: rotate(0deg); }
-  to   { transform: rotate(-360deg); }
-}
+/* 7. SoulPrint animation */
+#g965 { animation: rotate-right 20s linear infinite; transform-origin: 50% 50%; }
+#g3042 { animation: rotate-left 17s linear infinite; transform-origin: 50% 50%; }
+#g3042-1 { animation: rotate-right 14s linear infinite; transform-origin: 50% 50%; }
+#g3042-5 { animation: rotate-left 11s linear infinite; transform-origin: 50% 50%; }
+#g3042-8 { animation: rotate-right 8s linear infinite; transform-origin: 50% 50%; }
 
-/* Storm slows gradually when typing (typing = soulprint-storm-slow on container) */
-.soulprint-storm-slow #g965 {
-  animation-duration: 40s !important;
-}
-.soulprint-storm-slow #g3042 {
-  animation-duration: 34s !important;
-}
-.soulprint-storm-slow #g3042-1 {
-  animation-duration: 28s !important;
-}
-.soulprint-storm-slow #g3042-5 {
-  animation-duration: 22s !important;
-}
-.soulprint-storm-slow #g3042-8 {
-  animation-duration: 16s !important;
-}
+@keyframes rotate-right { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+@keyframes rotate-left { from { transform: rotate(0deg); } to { transform: rotate(-360deg); } }
 
-/* --- New: Animate storm layers expanding/contracting as if breathing while talking --- */
+/* Storm slows during typing */
+.soulprint-storm-slow #g965 { animation-duration: 40s !important; }
+.soulprint-storm-slow #g3042 { animation-duration: 34s !important; }
+.soulprint-storm-slow #g3042-1 { animation-duration: 28s !important; }
+.soulprint-storm-slow #g3042-5 { animation-duration: 22s !important; }
+.soulprint-storm-slow #g3042-8 { animation-duration: 16s !important; }
+
+/* Storm breathing */
 @keyframes soulprintStormPulse {
   0%   { transform: scale(1) rotate(0deg);}
   50%  { transform: scale(1.14) rotate(10deg);}
   100% { transform: scale(1) rotate(0deg);}
 }
-
 .soulprint-storm-breathing #g965 {
-  animation:
-    soulprintStormPulse 2.1s ease-in-out infinite,
-    rotate-right 40s linear infinite;
+  animation: soulprintStormPulse 2.1s ease-in-out infinite, rotate-right 40s linear infinite;
 }
 .soulprint-storm-breathing #g3042 {
-  animation:
-    soulprintStormPulse 2.1s ease-in-out infinite,
-    rotate-left 34s linear infinite;
+  animation: soulprintStormPulse 2.1s ease-in-out infinite, rotate-left 34s linear infinite;
 }
 .soulprint-storm-breathing #g3042-1 {
-  animation:
-    soulprintStormPulse 2.1s ease-in-out infinite,
-    rotate-right 28s linear infinite;
+  animation: soulprintStormPulse 2.1s ease-in-out infinite, rotate-right 28s linear infinite;
 }
 .soulprint-storm-breathing #g3042-5 {
-  animation:
-    soulprintStormPulse 2.1s ease-in-out infinite,
-    rotate-left 22s linear infinite;
+  animation: soulprintStormPulse 2.1s ease-in-out infinite, rotate-left 22s linear infinite;
 }
 .soulprint-storm-breathing #g3042-8 {
-  animation:
-    soulprintStormPulse 2.1s ease-in-out infinite,
-    rotate-right 16s linear infinite;
+  animation: soulprintStormPulse 2.1s ease-in-out infinite, rotate-right 16s linear infinite;
 }
 
-/* 9. Optional: message fade in/out for gentle transition */
+/* 8. Chat fade transitions */
 @keyframes fadeUpOut {
-  from { opacity: 1; transform: translateY(0);}
-  to   { opacity: 0; transform: translateY(-32px);}
+  from { opacity: 1; transform: translateY(0); }
+  to   { opacity: 0; transform: translateY(-32px); }
 }
 @keyframes fadein {
-  from { opacity: 0; transform: translateY(24px);}
-  to   { opacity: 1; transform: translateY(0);}
+  from { opacity: 0; transform: translateY(24px); }
+  to   { opacity: 1; transform: translateY(0); }
 }
