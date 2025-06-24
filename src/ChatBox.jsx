@@ -22,8 +22,6 @@ export default function ChatBox({ messages, leavingMsg, pending }) {
         marginBottom: 20,
         width: "100%",
         maxWidth: "100%",
-        marginLeft: "auto",
-        marginRight: "auto",
         display: "flex",
         flexDirection: "column",
         alignItems: "stretch",
@@ -60,14 +58,19 @@ export default function ChatBox({ messages, leavingMsg, pending }) {
             zIndex: 2,
           }}
         >
-          <b>{messages[messages.length - 1].role === "user" ? "You" : "I.L.I."}:</b> {messages[messages.length - 1].text}
+          <b>{messages[messages.length - 1].role === "user" ? "You" : "I.L.I."}:</b>{" "}
+          {messages[messages.length - 1].text}
         </div>
       ) : (
         <div style={{ textAlign: "center", color: "#888", width: "100%" }}>
           I.L.I. is waiting for you...
         </div>
       )}
-      {pending && <div className="loading" style={{ color: "#aaa" }}>I.L.I. is thinking…</div>}
+      {pending && (
+        <div className="loading" style={{ color: "#aaa" }}>
+          I.L.I. is thinking…
+        </div>
+      )}
     </div>
   );
 }
