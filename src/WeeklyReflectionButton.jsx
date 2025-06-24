@@ -6,36 +6,33 @@ export default function WeeklyReflectionButton({ onSaved }) {
 
   async function handleWeekly() {
     setProcessing(true);
-    // 1. Fetch last 7 daily reflections
-    const res = await fetch("/api/memory?type=daily_summary&limit=7");
+    // 1. Fetch last 7 daily profiles
+    const res = await fetch("/api/memory?type=daily_profile&limit=7");
     const data = await res.json();
-    const docs = data.data || data.documents || [];
+    const docs = data.profiles || [];
     if (!docs.length) {
-      alert("No daily summaries found!");
+      alert("No daily profiles found!");
       setProcessing(false);
       return;
     }
-    // 2. Compose summaries
-    const daysText = docs.map(d => `${d.metadata?.date || ""}: ${d.content}`).join("\n");
-    // 3. Send to backend for OpenAI summarization (reuse /api/memory)
+    // 2. Combine their texts
+    const combinedDailyProfilesText = docs.map(d => d.text).join("\n\n");
+
+    // 3. POST to /api/memory to create core (long-term) profile
     const res2 = await fetch("/api/memory", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        chatLog: daysText,
-        metadata: {
-          date: new Date().toISOString().split("T")[0],
-          type: "weekly_summary"
-        }
+        coreProfile: combinedDailyProfilesText
       })
     });
     if (res2.ok) {
-      const saved = await res2.json();
-      setWeekly(saved.content || "Weekly summary saved!");
+      const result = await res2.json();
+      setWeekly(result.coreSummary || "Long-term profile saved!");
       onSaved && onSaved();
     } else {
       const err = await res2.json();
-      setWeekly("Error saving weekly summary: " + (err?.error || res2.status));
+      setWeekly("Error saving core profile: " + (err?.error || res2.status));
     }
     setProcessing(false);
   }
@@ -56,7 +53,7 @@ export default function WeeklyReflectionButton({ onSaved }) {
         disabled={processing}
         onClick={handleWeekly}
       >
-        {processing ? "Summarizing…" : "Create Weekly Reflection"}
+        {processing ? "Summarizing…" : "Summarize to Long-term Profile"}
       </button>
       {weekly && (
         <div style={{
@@ -67,7 +64,7 @@ export default function WeeklyReflectionButton({ onSaved }) {
           marginTop: 10,
           fontSize: "1.07rem"
         }}>
-          <b>Weekly Reflection:</b>
+          <b>Long-term Profile:</b>
           <div style={{ marginTop: 5 }}>{weekly}</div>
         </div>
       )}
