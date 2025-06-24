@@ -14,7 +14,7 @@ body {
 /* 2. Root container: fixed width, always centered */
 #root > div {
   width: 100%;
-  max-width: 480px;
+  max-width: min(100vw, 480px);
   min-width: 320px;
   margin: 2rem auto;
   padding: 1rem;
@@ -24,6 +24,7 @@ body {
   background: #000;
   display: flex;
   flex-direction: column;
+  overflow-x: hidden;
 }
 
 form {
@@ -50,7 +51,6 @@ form {
     height: 84px;
   }
 }
-
 /* 3. Header / Soul Print */
 header {
   width: 100%;
