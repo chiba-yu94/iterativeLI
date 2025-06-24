@@ -1,9 +1,34 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import SoulPrint from "./SoulPrint";
 import ChatArea from "./ChatArea";
 import MemoryControls from "./MemoryControls";
-import { MemoryProvider } from "./MemoryProvider";
+import { MemoryProvider, useMemory } from "./MemoryProvider";
 import "./App.css";
+
+// Helper: Only handles sendBeacon if chatLog is non-empty and defined
+function AutoSaveOnClose() {
+  const { chatLog } = useMemory();
+
+  useEffect(() => {
+    const handleBeforeUnload = () => {
+      if (chatLog && chatLog.length > 0) {
+        const data = JSON.stringify({
+          chatLog,
+          metadata: {
+            type: "daily_summary",
+            date: new Date().toISOString().slice(0, 10),
+          },
+        });
+        const blob = new Blob([data], { type: "application/json" });
+        navigator.sendBeacon("/api/memory", blob);
+      }
+    };
+    window.addEventListener("beforeunload", handleBeforeUnload);
+    return () => window.removeEventListener("beforeunload", handleBeforeUnload);
+  }, [chatLog]);
+
+  return null; // This component has no visible UI
+}
 
 export default function App() {
   const [messages, setMessages] = useState([]);
@@ -58,6 +83,7 @@ export default function App() {
 
   return (
     <MemoryProvider>
+      <AutoSaveOnClose />
       <div
         className={
           "ili-container " +
