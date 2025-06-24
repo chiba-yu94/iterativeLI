@@ -16,7 +16,7 @@ export default async function handler(req, res) {
   for await (const chunk of req) {
     body += chunk;
   }
-  const { message, chatLog } = JSON.parse(body);
+  const { message, chatLog, coreProfile, sessionSummary } = JSON.parse(body);
 
   if (!message) {
     res.status(400).json({ error: "No message provided" });
@@ -24,24 +24,31 @@ export default async function handler(req, res) {
   }
 
   try {
-    let coreProfile = await getProfile("core_profile");
-    if (!coreProfile) coreProfile = await getProfile("daily_profile");
+    // If coreProfile is not provided, fetch from Dify (for compatibility)
+    let profileText = coreProfile;
+    if (!profileText) {
+      profileText = await getProfile("core_profile");
+      if (!profileText) profileText = await getProfile("daily_profile");
+    }
 
-    // Optionally include last N turns for recency/context
+    // Build recent conversation
     let recentLog = "";
     if (chatLog && Array.isArray(chatLog)) {
       const N = 6;
       recentLog = chatLog
         .slice(-N)
-        .map(m => `${m.role === "user" ? "You" : "I.L.I."}: ${m.text}`)
+        .map(m => `${m.role === "user" ? "User" : "I.L.I."}: ${m.text}`)
         .join("\n");
     }
 
     const systemPrompt = `
 ${iliPrompt}
 
-[User Identity Profile]
-${coreProfile || "No long-term profile yet."}
+[User Profile]
+${profileText || "(no long-term profile yet)"}
+
+[Session Summary]
+${sessionSummary || "(no summary yet)"}
 
 [Recent Conversation]
 ${recentLog}
