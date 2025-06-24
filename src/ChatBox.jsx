@@ -1,3 +1,4 @@
+// ChatBox.jsx
 export default function ChatBox({ messages, leavingMsg, pending }) {
   const msgTextStyle = (role) => ({
     textAlign: role === "user" ? "right" : "left",
@@ -6,9 +7,12 @@ export default function ChatBox({ messages, leavingMsg, pending }) {
     fontSize: "1.15rem",
     whiteSpace: "pre-wrap",
     wordBreak: "break-word",
-    width: "100%",
-    padding: 0,
+    overflowWrap: "break-word",
     background: "none",
+    padding: 0,
+    width: "100%",
+    maxWidth: "100%",  // 🔧 Fix width stretch
+    boxSizing: "border-box"
   });
 
   return (
@@ -17,16 +21,16 @@ export default function ChatBox({ messages, leavingMsg, pending }) {
         minHeight: 80,
         marginBottom: 20,
         width: "100%",
-        maxWidth: 480,
+        maxWidth: "100%", // 🔧 Enforce box limit
         marginLeft: "auto",
         marginRight: "auto",
         display: "flex",
         flexDirection: "column",
         alignItems: "stretch",
         position: "relative",
+        boxSizing: "border-box"
       }}
     >
-      {/* Floating out, fading up */}
       {leavingMsg && (
         <div
           key={leavingMsg.text + "_leaving"}
@@ -45,7 +49,6 @@ export default function ChatBox({ messages, leavingMsg, pending }) {
           <b>{leavingMsg.role === "user" ? "You" : "I.L.I."}:</b> {leavingMsg.text}
         </div>
       )}
-      {/* Newest message, fade in from below */}
       {messages.length > 0 ? (
         <div
           key={messages[messages.length - 1].text}
