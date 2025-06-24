@@ -190,13 +190,13 @@ export default async function handler(req, res) {
         finalSummary = await summarizeChat(chatLog);
       }
       if (!finalSummary) throw new Error("No summary or chatLog provided.");
-      const result = await saveMemory(finalSummary, metadata);
+      const result =  saveMemory(finalSummary, metadata);
 
       // If updateProfile flag, also update the user_profile
       if (updateProfile && chatLog) {
         const prevProfile = await getProfile("user_profile");
         const updatedProfile = await summarizeAsProfile(chatLog, prevProfile);
-        await saveProfile(updatedProfile, "user_profile");
+        await saveProfile(updatedProfile, "daily_profile", { date: new Date().toISOString().slice(0,10) });
       }
 
       res.status(200).json(result);
