@@ -1,6 +1,6 @@
 import OpenAI from "openai";
 import iliPrompt from "./iliPrompt.js";
-import { getProfile } from "./memory.js"; // Make sure path is correct
+import { getProfile } from "./memory.js";
 
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
@@ -24,7 +24,7 @@ export default async function handler(req, res) {
   }
 
   try {
-    // -- NEW: Fetch profiles from memory --
+    // Fetch both profiles from memory
     const userProfile = await getProfile("user_profile");
     const iliProfile = await getProfile("ili_profile");
 
