@@ -2,6 +2,7 @@ import { useState } from "react";
 import SoulPrint from "./SoulPrint";
 import ChatArea from "./ChatArea";
 import MemoryControls from "./MemoryControls";
+import { MemoryProvider } from "./MemoryProvider";
 import "./App.css";
 
 export default function App() {
@@ -56,34 +57,36 @@ export default function App() {
   };
 
   return (
-    <div
-      className={
-        "ili-container " +
-        (input.length > 0 && !pending ? "soulprint-storm-slow " : "") +
-        (pending ? "soulprint-core-glow " : "")
-      }
-    >
-      <header style={{ textAlign: "center", marginBottom: "1rem" }}>
-        <SoulPrint
-          slowStorm={input.length > 0 && !pending}
-          coreGlow={pending}
-          breathing={pending}
+    <MemoryProvider>
+      <div
+        className={
+          "ili-container " +
+          (input.length > 0 && !pending ? "soulprint-storm-slow " : "") +
+          (pending ? "soulprint-core-glow " : "")
+        }
+      >
+        <header style={{ textAlign: "center", marginBottom: "1rem" }}>
+          <SoulPrint
+            slowStorm={input.length > 0 && !pending}
+            coreGlow={pending}
+            breathing={pending}
+          />
+        </header>
+        <ChatArea
+          messages={messages}
+          partialReply={partialReply}
+          pending={pending}
+          input={input}
+          setInput={setInput}
+          sendMessage={sendMessage}
         />
-      </header>
-      <ChatArea
-        messages={messages}
-        partialReply={partialReply}
-        pending={pending}
-        input={input}
-        setInput={setInput}
-        sendMessage={sendMessage}
-      />
-      <MemoryControls
-        messages={messages}
-        pending={pending}
-        reloadFlag={reloadFlag}
-        setReloadFlag={setReloadFlag}
-      />
-    </div>
+        <MemoryControls
+          messages={messages}
+          pending={pending}
+          reloadFlag={reloadFlag}
+          setReloadFlag={setReloadFlag}
+        />
+      </div>
+    </MemoryProvider>
   );
 }
