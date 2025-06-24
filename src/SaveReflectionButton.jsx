@@ -1,3 +1,4 @@
+// SaveReflectionButton.jsx
 import { useState } from "react";
 
 export default function SaveReflectionButton({ messages, pending, onSaved }) {
@@ -30,18 +31,18 @@ export default function SaveReflectionButton({ messages, pending, onSaved }) {
   return (
     <button
       style={{
-        margin: "18px auto 0 auto",
+        margin: "12px auto 0 auto",
         display: "block",
-        background: "#181833",
-        color: "#9ff",
-        border: "1px solid #3b5bdb",
-        borderRadius: "6px",
-        fontSize: "1.1rem",
-        padding: "10px 18px",
+        background: "transparent",
+        color: "#888",
+        border: "1px solid #444",
+        borderRadius: "4px",
+        fontSize: "0.85rem",
+        padding: "4px 10px",
         cursor: "pointer",
-        fontWeight: "bold",
-        opacity: saving || pending || messages.length === 0 ? 0.5 : 1,
-        transition: "background 0.2s, color 0.2s"
+        fontWeight: "normal",
+        opacity: saving || pending || messages.length === 0 ? 0.4 : 1,
+        transition: "opacity 0.2s, color 0.2s"
       }}
       disabled={saving || pending || messages.length === 0}
       onClick={handleSave}
