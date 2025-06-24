@@ -253,11 +253,3 @@ form button:disabled {
   from { opacity: 0; transform: translateY(24px);}
   to   { opacity: 1; transform: translateY(0);}
 }
-
-#root > div {
-  width: 100%;
-  max-width: 100vw;
-  box-sizing: border-box;
-  padding: 1rem;
-  overflow-x: hidden;
-}
