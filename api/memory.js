@@ -1,10 +1,9 @@
-// /api/memory.js
 const DIFY_API_KEY = process.env.DIFY_API_KEY;
 const DIFY_API_URL = process.env.DIFY_API_URL || "https://api.dify.ai/v1";
 const DIFY_DATASET_ID = process.env.DIFY_DATASET_ID;
 const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
 
-// --- Helpers ---
+// ----------- UTILITY HELPERS -----------
 function getHeaders() {
   return {
     "Authorization": `Bearer ${DIFY_API_KEY}`,
@@ -12,7 +11,7 @@ function getHeaders() {
   };
 }
 
-// Save a memory chunk (daily/weekly summary)
+// Save a memory chunk (e.g. daily summary paragraph)
 async function saveMemory(summary, metadata = {}) {
   if (!DIFY_DATASET_ID) throw new Error("Missing DIFY_DATASET_ID environment variable");
   const res = await fetch(
@@ -36,7 +35,7 @@ async function saveMemory(summary, metadata = {}) {
   return res.json();
 }
 
-// Fetch memories (logs, summaries, etc)
+// Fetch any memories/documents
 async function getMemories(params = {}) {
   if (!DIFY_DATASET_ID) throw new Error("Missing DIFY_DATASET_ID environment variable");
   const url = new URL(`${DIFY_API_URL}/datasets/${DIFY_DATASET_ID}/documents`);
@@ -49,20 +48,21 @@ async function getMemories(params = {}) {
   return res.json();
 }
 
-// Save a profile (user or I.L.I.)
-async function saveProfile(profileContent, profileType = "user_profile") {
+// Save a structured profile (one per day, with type)
+async function saveProfile(profileContent, profileType = "daily_profile", metadata = {}) {
   if (!DIFY_DATASET_ID) throw new Error("Missing DIFY_DATASET_ID env");
+  const today = metadata.date || new Date().toISOString().slice(0, 10);
   const res = await fetch(
     `${DIFY_API_URL}/datasets/${DIFY_DATASET_ID}/document/create_by_text`,
     {
       method: "POST",
       headers: getHeaders(),
       body: JSON.stringify({
-        name: profileType,
+        name: profileType + "-" + today,
         text: profileContent,
         indexing_technique: "economy",
         process_rule: { mode: "automatic" },
-        metadata: { type: profileType }
+        metadata: { ...metadata, type: profileType, date: today }
       })
     }
   );
@@ -70,8 +70,8 @@ async function saveProfile(profileContent, profileType = "user_profile") {
   return res.json();
 }
 
-// Fetch the latest profile (user or I.L.I.)
-async function getProfile(profileType = "user_profile") {
+// Fetch the latest profile of a given type
+async function getProfile(profileType = "daily_profile") {
   if (!DIFY_DATASET_ID) throw new Error("Missing DIFY_DATASET_ID env");
   const url = new URL(`${DIFY_API_URL}/datasets/${DIFY_DATASET_ID}/documents`);
   url.searchParams.append("metadata.type", profileType);
@@ -83,13 +83,14 @@ async function getProfile(profileType = "user_profile") {
   return data.data?.[0]?.text || "";
 }
 
-// Create/Update a user profile with the latest chat log
+// GPT: Generate a structured daily profile
 async function summarizeAsProfile(chatLog, prevProfile = "") {
   const prompt = `
 You are I.L.I., a gentle digital companion.
 
-Update the following user profile from today's conversation log.
-If nothing has changed for a field, keep it as before.
+Create a new daily user profile based on today's conversation log.
+Each day, save a *new* profile (do not overwrite).
+Fill out these fields; if something was not mentioned, leave it blank.
 
 Profile so far:
 ${prevProfile || "(empty)"}
@@ -97,7 +98,7 @@ ${prevProfile || "(empty)"}
 Conversation:
 ${typeof chatLog === "string" ? chatLog : JSON.stringify(chatLog)}
 
-Fill out or update these fields:
+Fields:
 Name:
 Likes:
 Dislikes:
@@ -108,7 +109,7 @@ Aspirations/Concerns:
 Favorite Topics:
 Important Reflections (bullet points):
 
-Return the full updated profile in the same format.
+Return the full daily profile, in this format.
 `;
   const res = await fetch("https://api.openai.com/v1/chat/completions", {
     method: "POST",
@@ -131,9 +132,118 @@ Return the full updated profile in the same format.
   return data.choices?.[0]?.message?.content?.trim() || "";
 }
 
-// Optionally: Add similar function for ili_profile (I.L.I.'s self-profile)
+// Optionally, for weekly/long-term summary:
+async function summarizeCoreProfile(dailyProfilesText) {
+  const prompt = `
+You are I.L.I.
 
-// Default summary function for logs
+Summarize these daily user profiles into a single, long-term identity profile.
+Highlight repeated themes, emotional trends, likes/dislikes, and growth.
+Return the summary in the same fields as before.
+
+${dailyProfilesText}
+  `;
+  const res = await fetch("https://api.openai.com/v1/chat/completions", {
+    method: "POST",
+    headers: {
+      "Authorization": `Bearer ${OPENAI_API_KEY}`,
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify({
+      model: "gpt-3.5-turbo",
+      messages: [
+        { role: "system", content: "You are I.L.I.'s memory summarizer." },
+        { role: "user", content: prompt }
+      ],
+      max_tokens: 512,
+      temperature: 0.7
+    })
+  });
+  if (!res.ok) throw new Error(`OpenAI summarizeCoreProfile failed: ${res.status} - ${await res.text()}`);
+  const data = await res.json();
+  return data.choices?.[0]?.message?.content?.trim() || "";
+}
+
+export {
+  saveMemory,
+  getMemories,
+  saveProfile,
+  getProfile,
+  summarizeAsProfile,
+  summarizeCoreProfile,
+};
+
+// --- API HANDLER ---
+export default async function handler(req, res) {
+  if (!DIFY_API_KEY || !DIFY_DATASET_ID || !OPENAI_API_KEY) {
+    res.status(500).json({
+      error: "Missing one or more required environment variables. Check DIFY_API_KEY, DIFY_DATASET_ID, OPENAI_API_KEY."
+    });
+    return;
+  }
+
+  if (req.method === "POST") {
+    const { summary, chatLog, metadata, updateProfile, coreProfile } = req.body;
+    try {
+      let finalSummary = summary;
+      if (!finalSummary && chatLog) {
+        finalSummary = await summarizeChat(chatLog);
+      }
+      if (!finalSummary) throw new Error("No summary or chatLog provided.");
+
+      // Optionally save daily summary paragraph
+      let result;
+      if (!coreProfile) {
+        result = await saveMemory(finalSummary, metadata);
+      }
+
+      // Save daily profile (always as new doc)
+      if (updateProfile && chatLog) {
+        const today = new Date().toISOString().slice(0,10);
+        const updatedProfile = await summarizeAsProfile(chatLog);
+        await saveProfile(updatedProfile, "daily_profile", { date: today });
+      }
+
+      // If building a long-term/core profile from daily stack
+      if (coreProfile) {
+        const coreSummary = await summarizeCoreProfile(coreProfile);
+        await saveProfile(coreSummary, "core_profile");
+        res.status(200).json({ coreSummary });
+        return;
+      }
+
+      res.status(200).json(result || { ok: true });
+    } catch (err) {
+      console.error("Handler error:", err);
+      res.status(500).json({ error: err.message });
+    }
+  } else if (req.method === "GET") {
+    try {
+      // GET memory OR profile(s)
+      const { type, limit } = req.query;
+      if (type === "core_profile" || type === "daily_profile") {
+        const url = new URL(`${DIFY_API_URL}/datasets/${DIFY_DATASET_ID}/documents`);
+        url.searchParams.append("metadata.type", type);
+        url.searchParams.append("order_by", "-created_at");
+        if (limit) url.searchParams.append("limit", limit);
+        const resp = await fetch(url, { headers: getHeaders() });
+        if (!resp.ok) throw new Error("Failed to fetch profiles.");
+        const data = await resp.json();
+        res.status(200).json({ profiles: data.data || [] });
+      } else {
+        const memories = await getMemories(req.query);
+        res.status(200).json(memories);
+      }
+    } catch (err) {
+      console.error("Handler error:", err);
+      res.status(500).json({ error: err.message });
+    }
+  } else {
+    res.status(405).end();
+  }
+}
+
+// For backward-compatibility: simple summary
 async function summarizeChat(chatLog) {
   const prompt = `
 Summarize this conversation between I.L.I. and the user.
@@ -164,62 +274,4 @@ ${typeof chatLog === "string" ? chatLog : JSON.stringify(chatLog)}
   }
   const data = await res.json();
   return data.choices?.[0]?.message?.content?.trim() || "";
-}
-
-export {
-  saveMemory,
-  getMemories,
-  saveProfile,
-  getProfile,
-  summarizeAsProfile,
-};
-
-export default async function handler(req, res) {
-  if (!DIFY_API_KEY || !DIFY_DATASET_ID || !OPENAI_API_KEY) {
-    res.status(500).json({
-      error: "Missing one or more required environment variables. Check DIFY_API_KEY, DIFY_DATASET_ID, OPENAI_API_KEY."
-    });
-    return;
-  }
-
-  if (req.method === "POST") {
-    const { summary, chatLog, metadata, updateProfile } = req.body;
-    try {
-      let finalSummary = summary;
-      if (!finalSummary && chatLog) {
-        finalSummary = await summarizeChat(chatLog);
-      }
-      if (!finalSummary) throw new Error("No summary or chatLog provided.");
-      const result =  saveMemory(finalSummary, metadata);
-
-      // If updateProfile flag, also update the user_profile
-      if (updateProfile && chatLog) {
-        const prevProfile = await getProfile("user_profile");
-        const updatedProfile = await summarizeAsProfile(chatLog, prevProfile);
-        await saveProfile(updatedProfile, "daily_profile", { date: new Date().toISOString().slice(0,10) });
-      }
-
-      res.status(200).json(result);
-    } catch (err) {
-      console.error("Handler error:", err);
-      res.status(500).json({ error: err.message });
-    }
-  } else if (req.method === "GET") {
-    try {
-      // GET memory OR profile based on query param
-      const { type } = req.query;
-      if (type === "user_profile" || type === "ili_profile") {
-        const text = await getProfile(type);
-        res.status(200).json({ text });
-      } else {
-        const memories = await getMemories(req.query);
-        res.status(200).json(memories);
-      }
-    } catch (err) {
-      console.error("Handler error:", err);
-      res.status(500).json({ error: err.message });
-    }
-  } else {
-    res.status(405).end();
-  }
 }
