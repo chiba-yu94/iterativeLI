@@ -16,7 +16,7 @@ export default async function handler(req, res) {
   for await (const chunk of req) {
     body += chunk;
   }
-  const { message } = JSON.parse(body);
+  const { message, chatLog } = JSON.parse(body);
 
   if (!message) {
     res.status(400).json({ error: "No message provided" });
@@ -24,16 +24,28 @@ export default async function handler(req, res) {
   }
 
   try {
-    // Prefer core profile for deep identity, else fallback to latest daily profile
     let coreProfile = await getProfile("core_profile");
     if (!coreProfile) coreProfile = await getProfile("daily_profile");
+
+    // Optionally include last N turns for recency/context
+    let recentLog = "";
+    if (chatLog && Array.isArray(chatLog)) {
+      const N = 6;
+      recentLog = chatLog
+        .slice(-N)
+        .map(m => `${m.role === "user" ? "You" : "I.L.I."}: ${m.text}`)
+        .join("\n");
+    }
 
     const systemPrompt = `
 ${iliPrompt}
 
 [User Identity Profile]
 ${coreProfile || "No long-term profile yet."}
-`;
+
+[Recent Conversation]
+${recentLog}
+    `;
 
     const completion = await openai.chat.completions.create({
       model: "gpt-3.5-turbo",
