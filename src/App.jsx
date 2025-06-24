@@ -57,45 +57,55 @@ export default function App() {
   };
 
   return (
-    <div
-      className={
-        (input.length > 0 && !pending ? "soulprint-storm-slow " : "") +
-        (pending ? "soulprint-core-glow " : "")
-      }
-      style={{
-        width: "100%",
-        maxWidth: 480,
-        margin: "2rem auto",
-        fontFamily: "sans-serif",
-        background: "#000",
-        color: "#fff",
-        minHeight: "100vh",
-        padding: "1rem",
-        boxSizing: "border-box",
-        overflowX: "hidden",
-      }}
-    >
-      <header style={{ textAlign: "center", marginBottom: "1rem" }}>
-        <SoulPrint
-          slowStorm={input.length > 0 && !pending}
-          coreGlow={pending}
-          breathing={pending}
+    <div style={{
+      width: "100%",
+      display: "flex",
+      justifyContent: "center"
+    }}>
+      <div
+        className={
+          (input.length > 0 && !pending ? "soulprint-storm-slow " : "") +
+          (pending ? "soulprint-core-glow " : "")
+        }
+        style={{
+          width: "100%",
+          maxWidth: "min(100vw, 480px)",
+          minWidth: 320,
+          margin: "2rem auto",
+          fontFamily: "sans-serif",
+          background: "#000",
+          color: "#fff",
+          minHeight: "100vh",
+          padding: "1rem",
+          boxSizing: "border-box",
+          borderRadius: "18px",
+          overflowX: "hidden",
+          display: "flex",
+          flexDirection: "column"
+        }}
+      >
+        <header style={{ textAlign: "center", marginBottom: "1rem" }}>
+          <SoulPrint
+            slowStorm={input.length > 0 && !pending}
+            coreGlow={pending}
+            breathing={pending}
+          />
+        </header>
+        <ChatArea
+          messages={messages}
+          partialReply={partialReply}
+          pending={pending}
+          input={input}
+          setInput={setInput}
+          sendMessage={sendMessage}
         />
-      </header>
-      <ChatArea
-        messages={messages}
-        partialReply={partialReply}
-        pending={pending}
-        input={input}
-        setInput={setInput}
-        sendMessage={sendMessage}
-      />
-      <MemoryControls
-        messages={messages}
-        pending={pending}
-        reloadFlag={reloadFlag}
-        setReloadFlag={setReloadFlag}
-      />
+        <MemoryControls
+          messages={messages}
+          pending={pending}
+          reloadFlag={reloadFlag}
+          setReloadFlag={setReloadFlag}
+        />
+      </div>
     </div>
   );
 }
