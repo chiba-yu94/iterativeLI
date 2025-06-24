@@ -1,6 +1,7 @@
+// MemoryControls.jsx
 import SaveReflectionButton from "./SaveReflectionButton";
-import ReflectionLog from "./ReflectionLog";
-import WeeklyReflectionButton from "./WeeklyReflectionButton";
+// import ReflectionLog from "./ReflectionLog"; // Temporarily removed
+// import WeeklyReflectionButton from "./WeeklyReflectionButton"; // Temporarily removed
 
 export default function MemoryControls({
   messages,
@@ -15,8 +16,8 @@ export default function MemoryControls({
         pending={pending}
         onSaved={() => setReloadFlag(v => !v)}
       />
-      <ReflectionLog reloadFlag={reloadFlag} />
-      <WeeklyReflectionButton onSaved={() => setReloadFlag(v => !v)} />
+      {/* <ReflectionLog reloadFlag={reloadFlag} /> */}
+      {/* <WeeklyReflectionButton onSaved={() => setReloadFlag(v => !v)} /> */}
     </div>
   );
 }
