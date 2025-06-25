@@ -5,14 +5,14 @@ import MemoryControls from "./MemoryControls";
 import { MemoryProvider, useMemory } from "./MemoryProvider";
 import "./App.css";
 
-// Helper: Auto-save on tab close
+// 🔒 Persist chat on tab close
 function AutoSaveOnClose() {
   const { chatLog } = useMemory();
 
   useEffect(() => {
     const handleBeforeUnload = () => {
       if (chatLog && chatLog.length > 0) {
-        const data = JSON.stringify({
+        const payload = JSON.stringify({
           chatLog,
           updateProfile: true,
           metadata: {
@@ -20,8 +20,9 @@ function AutoSaveOnClose() {
             date: new Date().toISOString().slice(0, 10),
           },
         });
-        const blob = new Blob([data], { type: "application/json" });
+        const blob = new Blob([payload], { type: "application/json" });
         navigator.sendBeacon("/api/memory", blob);
+        localStorage.setItem("ili-latest-chat", payload);
       }
     };
     window.addEventListener("beforeunload", handleBeforeUnload);
@@ -110,14 +111,14 @@ function AppInner() {
     try {
       setLoadingProfile(true);
 
-      // --- Load daily profile and extract facts ---
+      // ✅ Load daily_profile and extract key-value facts
       const res = await fetch("/api/memory?type=daily_profile&limit=1");
       const data = await res.json();
       const text = data?.profiles?.[0]?.text || "";
       setDailyProfile(text);
 
       const facts = {};
-      text.split("\n").forEach(line => {
+      text.split("\n").forEach((line) => {
         const [key, ...rest] = line.split(":");
         if (key && rest.length > 0) {
           facts[key.trim()] = rest.join(":").trim();
@@ -125,10 +126,23 @@ function AppInner() {
       });
       setUserFacts(facts);
 
-      // --- Load core profile ---
+      // ✅ Load long-term core_profile
       const coreRes = await fetch("/api/memory?type=core_profile&limit=1");
       const coreData = await coreRes.json();
       setCoreProfile(coreData?.profiles?.[0]?.text || "");
+
+      // ✅ Restore previous chat log if exists
+      const cached = localStorage.getItem("ili-latest-chat");
+      if (cached) {
+        try {
+          const parsed = JSON.parse(cached);
+          if (parsed.chatLog?.length > 0) {
+            setChatLog(parsed.chatLog);
+          }
+        } catch (err) {
+          console.warn("Failed to parse cached chat:", err);
+        }
+      }
 
       setLoadingProfile(false);
       setStarted(true);
