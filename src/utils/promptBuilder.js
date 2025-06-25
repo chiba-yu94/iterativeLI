@@ -1,25 +1,28 @@
-export function buildIntroFromMemory(coreMemory, longTermMemory) {
-  if (!coreMemory && !longTermMemory) return "";
-
+export function buildIntroFromMemory(coreMemory = "", longTermMemory = "") {
   const bullets = [];
 
-  if (coreMemory?.includes("Name:")) {
-    bullets.push("I remember some things you've shared with me before.");
-  }
-
+  // --- Extract from core memory
+  const name = coreMemory.match(/Name:\s*(.*)/)?.[1]?.trim();
   const likes = coreMemory.match(/Likes:\s*(.*)/)?.[1]?.trim();
-  if (likes) bullets.push(`You enjoy ${likes.toLowerCase()}.`);
-
   const mood = coreMemory.match(/Current Mood\/Emotion:\s*(.*)/)?.[1]?.trim();
-  if (mood && mood !== "Not provided") {
-    bullets.push(`You’ve recently felt ${mood.toLowerCase()}.`);
+
+  if (name) bullets.push(`Hello again, ${name}.`);
+  if (likes) bullets.push(`I remember you enjoy ${likes.toLowerCase()}.`);
+  if (mood && mood.toLowerCase() !== "not provided") {
+    bullets.push(`You've recently been feeling ${mood.toLowerCase()}.`);
   }
 
-  const reflections = longTermMemory?.match(/Important Reflections \((bullet points)?\):([\s\S]+?)(\n\n|$)/);
-  if (reflections && reflections[2]) {
-    const points = reflections[2].trim().split(/\n|- /).filter(Boolean).slice(0, 2);
-    if (points.length > 0) {
-      bullets.push(`You've been reflecting on things like ${points.join(" and ")}.`);
+  // --- Extract from long-term memory
+  const reflectionsMatch = longTermMemory.match(/Important Reflections \((bullet points)?\):([\s\S]+?)(\n\n|$)/);
+  if (reflectionsMatch && reflectionsMatch[2]) {
+    const reflectionItems = reflectionsMatch[2]
+      .trim()
+      .split(/\n|- /)
+      .filter(line => line && line.trim().length > 0)
+      .slice(0, 2);
+
+    if (reflectionItems.length > 0) {
+      bullets.push(`You've been reflecting on things like ${reflectionItems.join(" and ")}.`);
     }
   }
 
