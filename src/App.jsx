@@ -1,12 +1,12 @@
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import SoulPrint from "./SoulPrint";
 import ChatArea from "./ChatArea";
 import MemoryControls from "./MemoryControls";
 import { MemoryProvider, useMemory } from "./MemoryProvider";
+import AutoSaveOnClose from "./AutoSaveOnClose";
 import { useFirstMessage } from "./hooks/useFirstMessage";
 import { buildMemoryIntro } from "./utils/promptBuilder";
 import "./App.css";
-import AutoSaveOnClose from "./AutoSaveOnClose";
 
 function AppInner() {
   const [pending, setPending] = useState(false);
@@ -59,7 +59,7 @@ function AppInner() {
       setDailyProfile(dailyText);
       setCoreProfile(coreText);
 
-      // set user facts from daily profile
+      // extract structured user facts from daily profile
       const facts = {};
       dailyText.split("\n").forEach((line) => {
         const [key, ...rest] = line.split(":");
@@ -69,19 +69,18 @@ function AppInner() {
       });
       setUserFacts(facts);
 
-      // Inject intro if no cached chat
+      // inject memory summary or icebreaker
       const cached = localStorage.getItem("ili-latest-chat");
       if (!cached) {
         const intro = buildMemoryIntro(dailyText, coreText);
         if (intro) {
           setChatLog([{ role: "bot", text: intro }]);
         } else {
-          // Icebreaker fallback
           setChatLog([
             {
               role: "bot",
               text:
-                "Hello. This is your first conversation with me.\nI'd love to get to know you—what’s your name, and how are you feeling today?",
+                "This is your first conversation with me.\nI'd love to get to know you—what’s your name, and how are you feeling today?",
             },
           ]);
         }
@@ -96,7 +95,7 @@ function AppInner() {
     if (!input.trim()) return;
 
     if (isFirstMessageToday && !hasFetchedMemory) {
-      await fetchMemoryOnce(); // inject memory right before 1st chat
+      await fetchMemoryOnce();
     }
 
     const newLog = [...chatLog, { role: "user", text: input }];
