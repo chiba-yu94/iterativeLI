@@ -1,10 +1,34 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import SoulPrint from "./SoulPrint";
 import ChatArea from "./ChatArea";
 import MemoryControls from "./MemoryControls";
 import { MemoryProvider, useMemory } from "./MemoryProvider";
-import AutoSaveOnClose from "./AutoSaveOnClose";
 import "./App.css";
+
+// Helper: Auto-save on tab close
+function AutoSaveOnClose() {
+  const { chatLog } = useMemory();
+
+  useEffect(() => {
+    const handleBeforeUnload = () => {
+      if (chatLog && chatLog.length > 0) {
+        const data = JSON.stringify({
+          chatLog,
+          metadata: {
+            type: "daily_summary",
+            date: new Date().toISOString().slice(0, 10),
+          },
+        });
+        const blob = new Blob([data], { type: "application/json" });
+        navigator.sendBeacon("/api/memory", blob);
+      }
+    };
+    window.addEventListener("beforeunload", handleBeforeUnload);
+    return () => window.removeEventListener("beforeunload", handleBeforeUnload);
+  }, [chatLog]);
+
+  return null;
+}
 
 function StartConversationButton({ onStart, loading }) {
   return (
@@ -19,31 +43,79 @@ function StartConversationButton({ onStart, loading }) {
 function AppInner() {
   const [started, setStarted] = useState(false);
   const [loadingProfile, setLoadingProfile] = useState(false);
+  const [pending, setPending] = useState(false);
+  const [input, setInput] = useState("");
+  const [partialReply, setPartialReply] = useState("");
+  const [reloadFlag, setReloadFlag] = useState(false);
+
   const {
-    chatLog,            // short-term memory (array)
-    setCoreProfile,
+    chatLog = [],
+    setChatLog,
     setDailyProfile,
+    setCoreProfile
   } = useMemory();
 
-  const safeMessages = chatLog || []; // Always fallback to an array
+  const WORD_INTERVAL = 90;
+  const revealReply = (fullText) => {
+    const words = fullText.split(" ");
+    setPartialReply("");
+    let idx = 0;
+    const showNextWord = () => {
+      if (idx < words.length) {
+        setPartialReply((prev) => prev + (prev ? " " : "") + words[idx]);
+        idx++;
+        setTimeout(showNextWord, WORD_INTERVAL);
+      } else {
+        setChatLog((msgs) => [...msgs, { role: "bot", text: fullText }]);
+        setPartialReply("");
+        setPending(false);
+      }
+    };
+    showNextWord();
+  };
+
+  const sendMessage = async (e) => {
+    e.preventDefault();
+    if (!input.trim()) return;
+
+    const newLog = [...chatLog, { role: "user", text: input }];
+    setChatLog(newLog);
+    setPending(true);
+
+    try {
+      const res = await fetch("/api/chat", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          message: input,
+          chatLog: newLog,
+        }),
+      });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const data = await res.json();
+      revealReply(data.reply || "…");
+    } catch (err) {
+      console.error("Chat error:", err);
+      setChatLog((msgs) => [...msgs, { role: "bot", text: "Oops—something went wrong. Try again." }]);
+      setPartialReply("");
+      setPending(false);
+    }
+
+    setInput("");
+  };
 
   const startConversation = async () => {
     try {
       setLoadingProfile(true);
-
-      // Fetch today's daily profile
       const res = await fetch("/api/memory?type=daily_profile&limit=1");
       if (!res.ok) throw new Error("Failed to fetch daily profile (" + res.status + ")");
       const data = await res.json();
-      const dailyProfiles = data?.profiles || [];
-      setDailyProfile(dailyProfiles[0]?.text || "");
+      setDailyProfile(data?.profiles?.[0]?.text || "");
 
-      // Fetch core profile (weekly summary)
       const coreRes = await fetch("/api/memory?type=core_profile&limit=1");
       if (!coreRes.ok) throw new Error("Failed to fetch core profile (" + coreRes.status + ")");
       const coreData = await coreRes.json();
-      const coreProfiles = coreData?.profiles || [];
-      setCoreProfile(coreProfiles[0]?.text || "");
+      setCoreProfile(coreData?.profiles?.[0]?.text || "");
 
       setLoadingProfile(false);
       setStarted(true);
@@ -55,21 +127,40 @@ function AppInner() {
   };
 
   if (!started) {
-    return (
-      <StartConversationButton onStart={startConversation} loading={loadingProfile} />
-    );
+    return <StartConversationButton onStart={startConversation} loading={loadingProfile} />;
   }
 
-  // Main chat UI
   return (
     <>
       <AutoSaveOnClose />
-      <div className="ili-container">
+      <div
+        className={
+          "ili-container " +
+          (input.length > 0 && !pending ? "soulprint-storm-slow " : "") +
+          (pending ? "soulprint-core-glow " : "")
+        }
+      >
         <header style={{ textAlign: "center", marginBottom: "1rem" }}>
-          <SoulPrint />
+          <SoulPrint
+            slowStorm={input.length > 0 && !pending}
+            coreGlow={pending}
+            breathing={pending}
+          />
         </header>
-        <ChatArea messages={safeMessages} /* always an array */ />
-        <MemoryControls />
+        <ChatArea
+          messages={chatLog}
+          partialReply={partialReply}
+          pending={pending}
+          input={input}
+          setInput={setInput}
+          sendMessage={sendMessage}
+        />
+        <MemoryControls
+          messages={chatLog}
+          pending={pending}
+          reloadFlag={reloadFlag}
+          setReloadFlag={setReloadFlag}
+        />
       </div>
     </>
   );
