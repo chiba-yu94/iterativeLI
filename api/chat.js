@@ -1,4 +1,4 @@
-import { buildIntroFromMemory } from "../utils/promptBuilder.js"; // <-- FIXED
+import { buildMemoryIntro } from '../src/utils/promptBuilder.js';
 import { getProfile } from "../../memory"; // fetches from Dify
 
 const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
