@@ -62,11 +62,11 @@ const sendMessage = async (e) => {
   setMessages((msgs) => [...msgs, { role: "user", text: input }]);
   setPending(true);
   try {
-    const res = await fetch("/api/chat", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ message: input }),  // <--- Update this line!
-    });
+const res = await fetch("/api/chat", {
+  method: "POST",
+  headers: { "Content-Type": "application/json" },
+  body: JSON.stringify({ message: input, chatLog: messages || [] }),
+});
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     const data = await res.json();
     revealReply(data.reply || "…");
