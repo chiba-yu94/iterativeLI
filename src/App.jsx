@@ -29,13 +29,15 @@ function AppInner() {
       const res = await fetch("/api/memory?type=daily_profile&limit=1");
       if (!res.ok) throw new Error("Failed to fetch daily profile (" + res.status + ")");
       const data = await res.json();
-      setDailyProfile(data.profiles?.[0]?.text || "");
+      const dailyProfiles = data?.profiles || [];
+      setDailyProfile(dailyProfiles[0]?.text || "");
 
       // Fetch core profile (weekly summary)
       const coreRes = await fetch("/api/memory?type=core_profile&limit=1");
       if (!coreRes.ok) throw new Error("Failed to fetch core profile (" + coreRes.status + ")");
       const coreData = await coreRes.json();
-      setCoreProfile(coreData.profiles?.[0]?.text || "");
+      const coreProfiles = coreData?.profiles || [];
+      setCoreProfile(coreProfiles[0]?.text || "");
 
       setLoadingProfile(false);
       setStarted(true);
