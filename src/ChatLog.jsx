@@ -1,5 +1,5 @@
 // ChatLog.jsx
-export default function ChatLog({ messages, show, onToggle }) {
+export default function ChatLog({ messages = [], show, onToggle }) {
   return (
     <div style={{ marginTop: 24, textAlign: "center", maxWidth: "100%" }}>
       <button
@@ -33,14 +33,14 @@ export default function ChatLog({ messages, show, onToggle }) {
             boxShadow: "0 2px 12px rgba(0,0,0,0.12)",
             fontSize: "0.98rem",
             width: "100%",
-            maxWidth: "100%", // 🔧 New
+            maxWidth: "100%",
             boxSizing: "border-box",
             marginLeft: "auto",
             marginRight: "auto",
             minWidth: 0,
           }}
         >
-          {(messages || []).map((msg, i) => (
+          {messages.map((msg, i) => (
             <div key={i} style={{
               textAlign: msg.role === "user" ? "right" : "left",
               color: msg.role === "user" ? "#4e83ee" : "#eee",
