@@ -5,7 +5,7 @@ const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
 
 function getHeaders() {
   return {
-    "Authorization": `Bearer ${DIFY_API_KEY}`,
+    Authorization: `Bearer ${DIFY_API_KEY}`,
     "Content-Type": "application/json",
   };
 }
@@ -194,7 +194,7 @@ ${longTermText}
   return data?.choices?.[0]?.message?.content?.trim() || "";
 }
 
-export {
+export default {
   saveMemory,
   getMemories,
   saveProfile,
