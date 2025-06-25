@@ -47,6 +47,7 @@ export function MemoryProvider({ children }) {
     <MemoryContext.Provider
       value={{
         chatLog,
+        setChatLog,
         addMessage,
         setMessages,
         clearMemory,
