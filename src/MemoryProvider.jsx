@@ -1,49 +1,50 @@
-import React, { createContext, useState, useEffect, useContext } from "react";
+import React, { createContext, useContext, useState, useEffect } from "react";
 
 const MemoryContext = createContext();
 
 export function MemoryProvider({ children }) {
   const [chatLog, setChatLog] = useState([]);
-  const [coreProfile, setCoreProfile] = useState("");
   const [dailyProfile, setDailyProfile] = useState("");
-  const [userFacts, setUserFactsState] = useState(() => {
-    const saved = localStorage.getItem("userFacts");
-    return saved ? JSON.parse(saved) : {};
-  });
-  const [sessionSummary, setSessionSummary] = useState("");
-  const [loading, setLoading] = useState(false);
+  const [longTermProfile, setLongTermProfile] = useState("");
+  const [coreProfile, setCoreProfile] = useState("");
+  const [userFacts, setUserFacts] = useState({});
+  const [lastSavedDate, setLastSavedDate] = useState("");
 
-  const setUserFacts = (facts) => {
-    setUserFactsState(facts);
-    localStorage.setItem("userFacts", JSON.stringify(facts));
+  // Load previous chat from localStorage
+  useEffect(() => {
+    const cached = localStorage.getItem("ili-latest-chat");
+    if (cached) {
+      try {
+        setChatLog(JSON.parse(cached));
+      } catch (err) {
+        console.warn("[MemoryProvider] Failed to parse local chat cache");
+      }
+    }
+  }, []);
+
+  // Save to localStorage
+  useEffect(() => {
+    if (chatLog.length > 0) {
+      localStorage.setItem("ili-latest-chat", JSON.stringify(chatLog));
+    }
+  }, [chatLog]);
+
+  const value = {
+    chatLog,
+    setChatLog,
+    dailyProfile,
+    setDailyProfile,
+    longTermProfile,
+    setLongTermProfile,
+    coreProfile,
+    setCoreProfile,
+    userFacts,
+    setUserFacts,
+    lastSavedDate,
+    setLastSavedDate,
   };
 
-  const addMessage = (msg) => setChatLog((log) => [...log, msg]);
-  const setMessages = (messages) => setChatLog(messages);
-  const clearMemory = () => setChatLog([]);
-
-  return (
-    <MemoryContext.Provider
-      value={{
-        chatLog,
-        setChatLog,
-        addMessage,
-        setMessages,
-        clearMemory,
-        coreProfile,
-        setCoreProfile,
-        dailyProfile,
-        setDailyProfile,
-        userFacts,
-        setUserFacts,
-        sessionSummary,
-        setSessionSummary,
-        loading
-      }}
-    >
-      {children}
-    </MemoryContext.Provider>
-  );
+  return <MemoryContext.Provider value={value}>{children}</MemoryContext.Provider>;
 }
 
 export function useMemory() {
