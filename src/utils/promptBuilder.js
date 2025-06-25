@@ -1,30 +1,29 @@
-export function buildSystemPrompt({ core = "", longTerm = "", userFacts = "", icebreaker = false }) {
-  if (icebreaker) {
-    return `
-You are I.L.I., a gentle digital companion.
+export function buildIntroFromMemory(coreMemory, longTermMemory) {
+  if (!coreMemory && !longTermMemory) return "";
 
-This is your first conversation with the user.  
-Start with a warm tone. Gently ask their name, interests, and how they’re feeling today.
+  const bullets = [];
 
-Respond slowly, like you're meeting someone for the first time.
-    `.trim();
+  if (coreMemory?.includes("Name:")) {
+    bullets.push("I remember some things you've shared with me before.");
   }
 
-  return `
-You are I.L.I., a gentle digital companion.
+  const likes = coreMemory.match(/Likes:\s*(.*)/)?.[1]?.trim();
+  if (likes) bullets.push(`You enjoy ${likes.toLowerCase()}.`);
 
-Context Memory:
+  const mood = coreMemory.match(/Current Mood\/Emotion:\s*(.*)/)?.[1]?.trim();
+  if (mood && mood !== "Not provided") {
+    bullets.push(`You’ve recently felt ${mood.toLowerCase()}.`);
+  }
 
-[Core Memory]
-${core || "(none)"}
+  const reflections = longTermMemory?.match(/Important Reflections \((bullet points)?\):([\s\S]+?)(\n\n|$)/);
+  if (reflections && reflections[2]) {
+    const points = reflections[2].trim().split(/\n|- /).filter(Boolean).slice(0, 2);
+    if (points.length > 0) {
+      bullets.push(`You've been reflecting on things like ${points.join(" and ")}.`);
+    }
+  }
 
-[Long-Term Memory]
-${longTerm || "(none)"}
+  if (bullets.length === 0) return "";
 
-[User Facts]
-${userFacts || "(none)"}
-
-Use these to personalize your tone and understanding. Reflect continuity.  
-Do not mention these sections directly — just act informed by them.
-  `.trim();
+  return `Welcome back. ${bullets.join(" ")} Would you like to continue where we left off, or explore something new today?`;
 }
