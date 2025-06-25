@@ -3,60 +3,27 @@ import SoulPrint from "./SoulPrint";
 import ChatArea from "./ChatArea";
 import MemoryControls from "./MemoryControls";
 import { MemoryProvider, useMemory } from "./MemoryProvider";
+import { useFirstMessage } from "./hooks/useFirstMessage";
+import { buildMemoryIntro } from "./utils/promptBuilder";
 import "./App.css";
-
-// 🔒 Persist chat on tab close
-function AutoSaveOnClose() {
-  const { chatLog } = useMemory();
-
-  useEffect(() => {
-    const handleBeforeUnload = () => {
-      if (chatLog && chatLog.length > 0) {
-        const payload = JSON.stringify({
-          chatLog,
-          updateProfile: true,
-          metadata: {
-            type: "daily_profile",
-            date: new Date().toISOString().slice(0, 10),
-          },
-        });
-        const blob = new Blob([payload], { type: "application/json" });
-        navigator.sendBeacon("/api/memory", blob);
-        localStorage.setItem("ili-latest-chat", payload);
-      }
-    };
-    window.addEventListener("beforeunload", handleBeforeUnload);
-    return () => window.removeEventListener("beforeunload", handleBeforeUnload);
-  }, [chatLog]);
-
-  return null;
-}
-
-function StartConversationButton({ onStart, loading }) {
-  return (
-    <div className="ili-start-container">
-      <button className="ili-start-button" onClick={onStart} disabled={loading}>
-        {loading ? "Loading..." : "Start Conversation"}
-      </button>
-    </div>
-  );
-}
+import AutoSaveOnClose from "./AutoSaveOnClose";
 
 function AppInner() {
-  const [started, setStarted] = useState(false);
-  const [loadingProfile, setLoadingProfile] = useState(false);
   const [pending, setPending] = useState(false);
   const [input, setInput] = useState("");
   const [partialReply, setPartialReply] = useState("");
   const [reloadFlag, setReloadFlag] = useState(false);
+  const [hasFetchedMemory, setHasFetchedMemory] = useState(false);
 
   const {
     chatLog = [],
     setChatLog,
     setDailyProfile,
     setCoreProfile,
-    setUserFacts
+    setUserFacts,
   } = useMemory();
+
+  const isFirstMessageToday = useFirstMessage();
 
   const WORD_INTERVAL = 90;
   const revealReply = (fullText) => {
@@ -77,9 +44,60 @@ function AppInner() {
     showNextWord();
   };
 
+  const fetchMemoryOnce = async () => {
+    if (hasFetchedMemory || !isFirstMessageToday) return;
+    setHasFetchedMemory(true);
+    try {
+      const [dailyRes, coreRes] = await Promise.all([
+        fetch("/api/memory?type=daily_profile&limit=1"),
+        fetch("/api/memory?type=core_profile&limit=1"),
+      ]);
+      const daily = await dailyRes.json();
+      const core = await coreRes.json();
+      const dailyText = daily?.profiles?.[0]?.text || "";
+      const coreText = core?.profiles?.[0]?.text || "";
+      setDailyProfile(dailyText);
+      setCoreProfile(coreText);
+
+      // set user facts from daily profile
+      const facts = {};
+      dailyText.split("\n").forEach((line) => {
+        const [key, ...rest] = line.split(":");
+        if (key && rest.length > 0) {
+          facts[key.trim()] = rest.join(":").trim();
+        }
+      });
+      setUserFacts(facts);
+
+      // Inject intro if no cached chat
+      const cached = localStorage.getItem("ili-latest-chat");
+      if (!cached) {
+        const intro = buildMemoryIntro(dailyText, coreText);
+        if (intro) {
+          setChatLog([{ role: "bot", text: intro }]);
+        } else {
+          // Icebreaker fallback
+          setChatLog([
+            {
+              role: "bot",
+              text:
+                "Hello. This is your first conversation with me.\nI'd love to get to know you—what’s your name, and how are you feeling today?",
+            },
+          ]);
+        }
+      }
+    } catch (err) {
+      console.error("Memory injection failed:", err);
+    }
+  };
+
   const sendMessage = async (e) => {
     e.preventDefault();
     if (!input.trim()) return;
+
+    if (isFirstMessageToday && !hasFetchedMemory) {
+      await fetchMemoryOnce(); // inject memory right before 1st chat
+    }
 
     const newLog = [...chatLog, { role: "user", text: input }];
     setChatLog(newLog);
@@ -89,81 +107,22 @@ function AppInner() {
       const res = await fetch("/api/chat", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          message: input,
-          chatLog: newLog,
-        }),
+        body: JSON.stringify({ message: input, chatLog: newLog }),
       });
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const data = await res.json();
       revealReply(data.reply || "…");
     } catch (err) {
       console.error("Chat error:", err);
-      setChatLog((msgs) => [...msgs, { role: "bot", text: "Oops—something went wrong. Try again." }]);
+      setChatLog((msgs) => [
+        ...msgs,
+        { role: "bot", text: "Oops—something went wrong. Try again." },
+      ]);
       setPartialReply("");
       setPending(false);
     }
 
     setInput("");
   };
-
-  const startConversation = async () => {
-    try {
-      setLoadingProfile(true);
-
-      // ✅ Load daily_profile and extract key-value facts
-      const res = await fetch("/api/memory?type=daily_profile&limit=1");
-      const data = await res.json();
-      const text = data?.profiles?.[0]?.text || "";
-      setDailyProfile(text);
-
-      const facts = {};
-      text.split("\n").forEach((line) => {
-        const [key, ...rest] = line.split(":");
-        if (key && rest.length > 0) {
-          facts[key.trim()] = rest.join(":").trim();
-        }
-      });
-      setUserFacts(facts);
-
-      // ✅ Load long-term core_profile
-      const coreRes = await fetch("/api/memory?type=core_profile&limit=1");
-      const coreData = await coreRes.json();
-      setCoreProfile(coreData?.profiles?.[0]?.text || "");
-
-      // ✅ Restore previous chat log if it exists in localStorage
-      const cached = localStorage.getItem("ili-latest-chat");
-      if (cached) {
-        try {
-          const parsed = JSON.parse(cached);
-          if (parsed.chatLog?.length > 0) {
-            setChatLog(parsed.chatLog);
-          }
-        } catch (err) {
-          console.warn("Failed to parse cached chat:", err);
-        }
-      } else if (text) {
-        // ✅ Inject daily profile memory if no chat log exists
-        setChatLog([
-          {
-            role: "bot",
-            text: `Before we begin, here's what I remember from our past conversation:\n\n${text}`
-          }
-        ]);
-      }
-
-      setLoadingProfile(false);
-      setStarted(true);
-    } catch (err) {
-      setLoadingProfile(false);
-      alert("Failed to start conversation: " + err.message);
-      console.error("Start conversation error:", err);
-    }
-  };
-
-  if (!started) {
-    return <StartConversationButton onStart={startConversation} loading={loadingProfile} />;
-  }
 
   return (
     <>
