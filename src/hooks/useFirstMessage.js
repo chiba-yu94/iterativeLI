@@ -1,20 +1,18 @@
 import { useEffect, useRef, useState } from "react";
 
-export default function useFirstMessageToday() {
+export function useFirstMessage() {
   const [isFirstMessage, setIsFirstMessage] = useState(false);
-  const triggeredRef = useRef(false);
+  const hasTriggered = useRef(false);
 
   useEffect(() => {
     const today = new Date().toISOString().slice(0, 10);
-    const lastSent = localStorage.getItem("ili_last_message_date");
+    const stored = localStorage.getItem("ili-last-message-date");
 
-    if (lastSent !== today) {
+    if (stored !== today && !hasTriggered.current) {
+      hasTriggered.current = true;
       setIsFirstMessage(true);
-      localStorage.setItem("ili_last_message_date", today);
-    } else {
-      setIsFirstMessage(false);
+      localStorage.setItem("ili-last-message-date", today);
     }
-    triggeredRef.current = true;
   }, []);
 
   return isFirstMessage;
