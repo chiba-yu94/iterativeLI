@@ -131,7 +131,7 @@ function AppInner() {
       const coreData = await coreRes.json();
       setCoreProfile(coreData?.profiles?.[0]?.text || "");
 
-      // ✅ Restore previous chat log if exists
+      // ✅ Restore previous chat log if it exists in localStorage
       const cached = localStorage.getItem("ili-latest-chat");
       if (cached) {
         try {
@@ -142,6 +142,14 @@ function AppInner() {
         } catch (err) {
           console.warn("Failed to parse cached chat:", err);
         }
+      } else if (text) {
+        // ✅ Inject daily profile memory if no chat log exists
+        setChatLog([
+          {
+            role: "bot",
+            text: `Before we begin, here's what I remember from our past conversation:\n\n${text}`
+          }
+        ]);
       }
 
       setLoadingProfile(false);
