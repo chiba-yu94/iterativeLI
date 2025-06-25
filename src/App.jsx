@@ -5,7 +5,7 @@ import MemoryControls from "./MemoryControls";
 import { MemoryProvider, useMemory } from "./MemoryProvider";
 import AutoSaveOnClose from "./AutoSaveOnClose";
 import { useFirstMessage } from "./hooks/useFirstMessage";
-import { buildMemoryIntro } from "./utils/promptBuilder";
+import { buildIntroFromMemory } from "./utils/promptBuilder";
 import "./App.css";
 
 function AppInner() {
@@ -24,8 +24,8 @@ function AppInner() {
   } = useMemory();
 
   const isFirstMessageToday = useFirstMessage();
-
   const WORD_INTERVAL = 90;
+
   const revealReply = (fullText) => {
     const words = fullText.split(" ");
     setPartialReply("");
@@ -72,7 +72,7 @@ function AppInner() {
       // inject memory summary or icebreaker
       const cached = localStorage.getItem("ili-latest-chat");
       if (!cached) {
-        const intro = buildMemoryIntro(dailyText, coreText);
+        const intro = buildIntroFromMemory(coreText, dailyText);
         if (intro) {
           setChatLog([{ role: "bot", text: intro }]);
         } else {
