@@ -7,16 +7,24 @@ const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
 });
 
-// Helper: Extract user's name from the chat log using GPT
-async function extractUserName(chatLog) {
+// Helper: Extract multiple user facts from the chat log using GPT
+async function extractUserFacts(chatLog) {
   const prompt = `
-From the following conversation, extract the user's name if mentioned. If not given, respond "unknown".
+From the following conversation, extract any of these fields (leave blank if not mentioned):
+
+User's name:
+Likes:
+Dislikes:
+Typical Mood/Emotion:
+Current Mood/Emotion:
+Aspirations/Concerns:
+Favorite Topics:
+Important Reflections:
 
 Conversation:
 ${chatLog.map(m => `${m.role === "user" ? "User" : "I.L.I."}: ${m.text}`).join("\n")}
-
-User's name:
   `;
+
   const res = await fetch("https://api.openai.com/v1/chat/completions", {
     method: "POST",
     headers: {
@@ -26,16 +34,15 @@ User's name:
     body: JSON.stringify({
       model: "gpt-3.5-turbo",
       messages: [
-        { role: "system", content: "Extract the user's name from the conversation. Respond only with the name, or 'unknown'." },
+        { role: "system", content: "Extract user facts and important info as specified. Respond in the given format, leaving fields blank if not mentioned." },
         { role: "user", content: prompt }
       ],
-      max_tokens: 10,
+      max_tokens: 180,
       temperature: 0
     })
   });
   const data = await res.json();
-  const name = data.choices?.[0]?.message?.content?.trim();
-  return name && name.toLowerCase() !== "unknown" ? name : "";
+  return data.choices?.[0]?.message?.content?.trim() || "";
 }
 
 export default async function handler(req, res) {
@@ -50,8 +57,8 @@ export default async function handler(req, res) {
   }
   const { message, chatLog, sessionSummary } = JSON.parse(body);
 
-  if (!message || !chatLog) {
-    res.status(400).json({ error: "Missing message or chatLog" });
+  if (typeof message !== "string" || !Array.isArray(chatLog)) {
+    res.status(400).json({ error: "Missing or invalid message or chatLog" });
     return;
   }
 
@@ -60,10 +67,10 @@ export default async function handler(req, res) {
     let coreProfile = await getProfile("core_profile");
     if (!coreProfile) coreProfile = await getProfile("daily_profile");
 
-    // 2. Extract user name from chatLog
-    const userName = await extractUserName(chatLog);
+    // 2. Extract user facts (multi-field)
+    const userFacts = await extractUserFacts(chatLog);
 
-    // 3. Optionally, update session summary or other facts here (you can make this more elaborate if desired)
+    // 3. Optionally, update session summary or other facts here (can expand if needed)
     const summary = sessionSummary || ""; // Or use other summary logic
 
     // 4. Build the last N turns of conversation for recency
@@ -81,7 +88,7 @@ ${iliPrompt}
 ${coreProfile || "(no long-term profile yet)"}
 
 [User Facts]
-User's name: ${userName || "(not given yet)"}
+${userFacts}
 
 [Session Summary]
 ${summary || "(no summary yet)"}
@@ -100,7 +107,7 @@ ${recentLog}
     });
     const reply = completion.choices[0].message.content;
 
-    res.status(200).json({ reply, userName }); // Optionally return userName for frontend use/debug
+    res.status(200).json({ reply, userFacts }); // Optionally return userFacts for frontend use/debug
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
