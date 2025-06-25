@@ -1,5 +1,7 @@
 // ChatBox.jsx
 export default function ChatBox({ messages, leavingMsg, pending }) {
+  const safeMessages = messages || [];
+
   const msgTextStyle = (role) => ({
     textAlign: role === "user" ? "right" : "left",
     color: role === "user" ? "#3b5bdb" : "#eee",
@@ -47,19 +49,19 @@ export default function ChatBox({ messages, leavingMsg, pending }) {
           <b>{leavingMsg.role === "user" ? "You" : "I.L.I."}:</b> {leavingMsg.text}
         </div>
       )}
-      {messages.length > 0 ? (
+      {safeMessages.length > 0 ? (
         <div
-          key={messages[messages.length - 1].text}
+          key={safeMessages[safeMessages.length - 1].text}
           style={{
-            ...msgTextStyle(messages[messages.length - 1].role),
+            ...msgTextStyle(safeMessages[safeMessages.length - 1].role),
             opacity: 1,
             animation: "fadein 0.7s",
             position: "relative",
             zIndex: 2,
           }}
         >
-          <b>{messages[messages.length - 1].role === "user" ? "You" : "I.L.I."}:</b>{" "}
-          {messages[messages.length - 1].text}
+          <b>{safeMessages[safeMessages.length - 1].role === "user" ? "You" : "I.L.I."}:</b>{" "}
+          {safeMessages[safeMessages.length - 1].text}
         </div>
       ) : (
         <div style={{ textAlign: "center", color: "#888", width: "100%" }}>
