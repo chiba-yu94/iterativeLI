@@ -29,8 +29,8 @@ async function saveMemory(summary, metadata = {}) {
     }
   );
   if (!res.ok) {
-    const err = await res.text();
-    throw new Error(`Dify save failed: ${res.status} - ${err}`);
+    const text = await res.text();
+    throw new Error(`Dify fetch failed: ${res.status} - ${text}`);
   }
   return res.json();
 }
