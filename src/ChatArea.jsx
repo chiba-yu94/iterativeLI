@@ -13,13 +13,16 @@ export default function ChatArea({
 }) {
   const [showLog, setShowLog] = useState(false);
 
+  // Always use a safe fallback for messages
+  const safeMessages = messages || [];
+
   // Prepare messages for animation (last user and partial bot, or last bot if done)
   const chatMsgs = (() => {
     if (pending && partialReply) {
-      let prev = messages.length > 0 ? messages[messages.length - 1] : null;
+      let prev = safeMessages.length > 0 ? safeMessages[safeMessages.length - 1] : null;
       return [prev, { role: "bot", text: partialReply }].filter(Boolean);
     }
-    return messages.slice(-2);
+    return safeMessages.slice(-2);
   })();
 
   return (
@@ -45,7 +48,7 @@ export default function ChatArea({
       >
         {showLog ? "Hide Conversation Log" : "Show Conversation Log"}
       </button>
-      {showLog && <ChatLog messages={messages} show={showLog} onToggle={() => setShowLog(false)} />}
+      {showLog && <ChatLog messages={safeMessages} show={showLog} onToggle={() => setShowLog(false)} />}
     </div>
   );
 }
