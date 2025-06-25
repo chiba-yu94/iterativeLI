@@ -22,17 +22,28 @@ function AppInner() {
   const { setCoreProfile, setDailyProfile } = useMemory();
 
   const startConversation = async () => {
-    setLoadingProfile(true);
-    // Fetch today's daily profile from backend
-    const res = await fetch("/api/memory?type=daily_profile&limit=1");
-    const data = await res.json();
-    setDailyProfile(data.profiles?.[0]?.text || "");
-    // Optionally fetch core profile (weekly summary)
-    const coreRes = await fetch("/api/memory?type=core_profile&limit=1");
-    const coreData = await coreRes.json();
-    setCoreProfile(coreData.profiles?.[0]?.text || "");
-    setLoadingProfile(false);
-    setStarted(true);
+    try {
+      setLoadingProfile(true);
+
+      // Fetch today's daily profile from backend
+      const res = await fetch("/api/memory?type=daily_profile&limit=1");
+      if (!res.ok) throw new Error("Failed to fetch daily profile (" + res.status + ")");
+      const data = await res.json();
+      setDailyProfile(data.profiles?.[0]?.text || "");
+
+      // Fetch core profile (weekly summary)
+      const coreRes = await fetch("/api/memory?type=core_profile&limit=1");
+      if (!coreRes.ok) throw new Error("Failed to fetch core profile (" + coreRes.status + ")");
+      const coreData = await coreRes.json();
+      setCoreProfile(coreData.profiles?.[0]?.text || "");
+
+      setLoadingProfile(false);
+      setStarted(true);
+    } catch (err) {
+      setLoadingProfile(false);
+      alert("Failed to start conversation: " + err.message);
+      console.error("Start conversation error:", err);
+    }
   };
 
   if (!started) {
