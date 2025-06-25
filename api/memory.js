@@ -40,7 +40,10 @@ async function getMemories(params = {}) {
   if (!DIFY_DATASET_ID) throw new Error("Missing DIFY_DATASET_ID environment variable");
   const url = new URL(`${DIFY_API_URL}/datasets/${DIFY_DATASET_ID}/documents`);
   Object.entries(params).forEach(([k, v]) => url.searchParams.append(k, v));
-  const res = await fetch(url, { headers: getHeaders() });
+  const res = await fetch(url, { 
+    headers: getHeaders(),
+    cache: "no-store",
+  });
   if (!res.ok) {
     const err = await res.text();
     throw new Error(`Dify fetch failed: ${res.status} - ${err}`);
