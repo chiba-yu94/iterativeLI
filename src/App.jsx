@@ -19,13 +19,19 @@ function StartConversationButton({ onStart, loading }) {
 function AppInner() {
   const [started, setStarted] = useState(false);
   const [loadingProfile, setLoadingProfile] = useState(false);
-  const { setCoreProfile, setDailyProfile } = useMemory();
+  const {
+    chatLog,            // short-term memory (array)
+    setCoreProfile,
+    setDailyProfile,
+  } = useMemory();
+
+  const safeMessages = chatLog || []; // Always fallback to an array
 
   const startConversation = async () => {
     try {
       setLoadingProfile(true);
 
-      // Fetch today's daily profile from backend
+      // Fetch today's daily profile
       const res = await fetch("/api/memory?type=daily_profile&limit=1");
       if (!res.ok) throw new Error("Failed to fetch daily profile (" + res.status + ")");
       const data = await res.json();
@@ -49,7 +55,9 @@ function AppInner() {
   };
 
   if (!started) {
-    return <StartConversationButton onStart={startConversation} loading={loadingProfile} />;
+    return (
+      <StartConversationButton onStart={startConversation} loading={loadingProfile} />
+    );
   }
 
   // Main chat UI
@@ -60,7 +68,7 @@ function AppInner() {
         <header style={{ textAlign: "center", marginBottom: "1rem" }}>
           <SoulPrint />
         </header>
-        <ChatArea />
+        <ChatArea messages={safeMessages} /* always an array */ />
         <MemoryControls />
       </div>
     </>
