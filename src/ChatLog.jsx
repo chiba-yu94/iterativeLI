@@ -40,7 +40,7 @@ export default function ChatLog({ messages, show, onToggle }) {
             minWidth: 0,
           }}
         >
-          {messages.map((msg, i) => (
+          {(messages || []).map((msg, i) => (
             <div key={i} style={{
               textAlign: msg.role === "user" ? "right" : "left",
               color: msg.role === "user" ? "#4e83ee" : "#eee",
