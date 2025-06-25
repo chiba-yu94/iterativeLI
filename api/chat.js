@@ -7,10 +7,10 @@ const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
 });
 
-// Helper: Extract multiple user facts from the chat log using GPT
+// Multi-fact extractor (GPT)
 async function extractUserFacts(chatLog) {
   const prompt = `
-From the following conversation, extract any of these fields (leave blank if not mentioned):
+From the following conversation, extract these fields (leave blank if not mentioned):
 
 User's name:
 Likes:
@@ -24,7 +24,6 @@ Important Reflections:
 Conversation:
 ${chatLog.map(m => `${m.role === "user" ? "User" : "I.L.I."}: ${m.text}`).join("\n")}
   `;
-
   const res = await fetch("https://api.openai.com/v1/chat/completions", {
     method: "POST",
     headers: {
@@ -52,10 +51,8 @@ export default async function handler(req, res) {
   }
 
   let body = "";
-  for await (const chunk of req) {
-    body += chunk;
-  }
-  const { message, chatLog, sessionSummary } = JSON.parse(body);
+  for await (const chunk of req) { body += chunk; }
+  const { message, chatLog, dailyProfile, coreProfile, sessionSummary } = JSON.parse(body);
 
   if (typeof message !== "string" || !Array.isArray(chatLog)) {
     res.status(400).json({ error: "Missing or invalid message or chatLog" });
@@ -63,41 +60,47 @@ export default async function handler(req, res) {
   }
 
   try {
-    // 1. Get identity profile (from Dify, if available)
-    let coreProfile = await getProfile("core_profile");
-    if (!coreProfile) coreProfile = await getProfile("daily_profile");
+    // Use provided daily/core profile, or fallback to fetching latest from Dify
+    let todayProfile = dailyProfile;
+    if (!todayProfile) {
+      todayProfile = await getProfile("daily_profile");
+    }
+    let weeklyProfile = coreProfile;
+    if (!weeklyProfile) {
+      weeklyProfile = await getProfile("core_profile");
+    }
 
-    // 2. Extract user facts (multi-field)
+    // Extract up-to-date user facts from chat log
     const userFacts = await extractUserFacts(chatLog);
 
-    // 3. Optionally, update session summary or other facts here (can expand if needed)
-    const summary = sessionSummary || ""; // Or use other summary logic
-
-    // 4. Build the last N turns of conversation for recency
+    // Build the last N turns of conversation for recency
     const N = 8;
     const recentLog = chatLog
       .slice(-N)
       .map(m => `${m.role === "user" ? "User" : "I.L.I."}: ${m.text}`)
       .join("\n");
 
-    // 5. Assemble the system prompt
+    // Assemble the full system prompt
     const systemPrompt = `
 ${iliPrompt}
 
-[User Profile]
-${coreProfile || "(no long-term profile yet)"}
+[Long-Term Memory]
+${weeklyProfile || "(no long-term memory yet)"}
+
+[Daily Memory]
+${todayProfile || "(no daily memory yet)"}
 
 [User Facts]
 ${userFacts}
 
 [Session Summary]
-${summary || "(no summary yet)"}
+${sessionSummary || "(no summary yet)"}
 
 [Recent Conversation]
 ${recentLog}
     `;
 
-    // 6. Send to OpenAI
+    // Call OpenAI
     const completion = await openai.chat.completions.create({
       model: "gpt-3.5-turbo",
       messages: [
@@ -107,7 +110,7 @@ ${recentLog}
     });
     const reply = completion.choices[0].message.content;
 
-    res.status(200).json({ reply, userFacts }); // Optionally return userFacts for frontend use/debug
+    res.status(200).json({ reply, userFacts });
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
