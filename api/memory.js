@@ -40,9 +40,9 @@ async function getMemories(params = {}) {
   if (!DIFY_DATASET_ID) throw new Error("Missing DIFY_DATASET_ID environment variable");
   const url = new URL(`${DIFY_API_URL}/datasets/${DIFY_DATASET_ID}/documents`);
   Object.entries(params).forEach(([k, v]) => url.searchParams.append(k, v));
-  const res = await fetch(url, { 
+  const res = await fetch(url, {
     headers: getHeaders(),
-    cache: "no-store",
+    cache: "no-store", // ✅ Prevent 304 caching
   });
   if (!res.ok) {
     const err = await res.text();
@@ -80,7 +80,10 @@ async function getProfile(profileType = "daily_profile") {
   url.searchParams.append("metadata.type", profileType);
   url.searchParams.append("order_by", "-created_at");
   url.searchParams.append("limit", "1");
-  const res = await fetch(url, { headers: getHeaders() });
+  const res = await fetch(url, {
+    headers: getHeaders(),
+    cache: "no-store", // ✅ Prevent 304 caching
+  });
   if (!res.ok) throw new Error(`Dify getProfile failed: ${res.status} - ${await res.text()}`);
   const data = await res.json();
   return data.data?.[0]?.text || "";
@@ -229,7 +232,10 @@ export default async function handler(req, res) {
         url.searchParams.append("metadata.type", type);
         url.searchParams.append("order_by", "-created_at");
         if (limit) url.searchParams.append("limit", limit);
-        const resp = await fetch(url, { headers: getHeaders() });
+        const resp = await fetch(url, {
+          headers: getHeaders(),
+          cache: "no-store" // ✅ prevent stale or empty 304 response
+        });
         if (!resp.ok) throw new Error("Failed to fetch profiles.");
         const data = await resp.json();
         res.status(200).json({ profiles: data.data || [] });
