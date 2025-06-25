@@ -76,17 +76,42 @@ async function saveProfile(profileContent, profileType = "daily_profile", metada
 // Fetch the latest profile of a given type
 async function getProfile(profileType = "daily_profile") {
   if (!DIFY_DATASET_ID) throw new Error("Missing DIFY_DATASET_ID env");
+
   const url = new URL(`${DIFY_API_URL}/datasets/${DIFY_DATASET_ID}/documents`);
   url.searchParams.append("metadata.type", profileType);
   url.searchParams.append("order_by", "-created_at");
   url.searchParams.append("limit", "1");
+
+  console.log(`[getProfile] Fetching ${profileType} from:`, url.toString());
+
   const res = await fetch(url, {
     headers: getHeaders(),
-    cache: "no-store", // ✅ Prevent 304 caching
+    cache: "no-store"
   });
-  if (!res.ok) throw new Error(`Dify getProfile failed: ${res.status} - ${await res.text()}`);
-  const data = await res.json();
-  return data.data?.[0]?.text || "";
+
+  const rawText = await res.text();
+  console.log("[getProfile] Raw response:", rawText);
+
+  if (!res.ok) {
+    throw new Error(`Dify getProfile failed: ${res.status} - ${rawText}`);
+  }
+
+  let data;
+  try {
+    data = JSON.parse(rawText);
+  } catch (err) {
+    console.error("[getProfile] Failed to parse JSON:", err);
+    return "(profile parse error)";
+  }
+
+  const profileText = data?.data?.[0]?.text || "";
+  if (!profileText) {
+    console.warn(`[getProfile] No ${profileType} found. Returning fallback.`);
+    return `(no ${profileType} yet)`;
+  }
+
+  console.log(`[getProfile] Loaded ${profileType} profile successfully.`);
+  return profileText;
 }
 
 // GPT: Generate a structured daily profile
