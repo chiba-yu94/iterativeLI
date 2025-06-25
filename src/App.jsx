@@ -14,8 +14,9 @@ function AutoSaveOnClose() {
       if (chatLog && chatLog.length > 0) {
         const data = JSON.stringify({
           chatLog,
+          updateProfile: true,
           metadata: {
-            type: "daily_summary",
+            type: "daily_profile",
             date: new Date().toISOString().slice(0, 10),
           },
         });
@@ -52,7 +53,8 @@ function AppInner() {
     chatLog = [],
     setChatLog,
     setDailyProfile,
-    setCoreProfile
+    setCoreProfile,
+    setUserFacts
   } = useMemory();
 
   const WORD_INTERVAL = 90;
@@ -107,13 +109,24 @@ function AppInner() {
   const startConversation = async () => {
     try {
       setLoadingProfile(true);
-      const res = await fetch("/api/memory?type=daily_profile&limit=1");
-      if (!res.ok) throw new Error("Failed to fetch daily profile (" + res.status + ")");
-      const data = await res.json();
-      setDailyProfile(data?.profiles?.[0]?.text || "");
 
+      // --- Load daily profile and extract facts ---
+      const res = await fetch("/api/memory?type=daily_profile&limit=1");
+      const data = await res.json();
+      const text = data?.profiles?.[0]?.text || "";
+      setDailyProfile(text);
+
+      const facts = {};
+      text.split("\n").forEach(line => {
+        const [key, ...rest] = line.split(":");
+        if (key && rest.length > 0) {
+          facts[key.trim()] = rest.join(":").trim();
+        }
+      });
+      setUserFacts(facts);
+
+      // --- Load core profile ---
       const coreRes = await fetch("/api/memory?type=core_profile&limit=1");
-      if (!coreRes.ok) throw new Error("Failed to fetch core profile (" + coreRes.status + ")");
       const coreData = await coreRes.json();
       setCoreProfile(coreData?.profiles?.[0]?.text || "");
 
