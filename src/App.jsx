@@ -9,14 +9,13 @@ import { buildIntroFromMemory } from "./utils/promptBuilder";
 import "./App.css";
 
 function AppInner() {
-const mem = useMemory() || {};
-const chatLog = mem.chatLog ?? [];
-const setChatLog = mem.setChatLog;
-const setDailyProfile = mem.setDailyProfile;
-const setCoreProfile = mem.setCoreProfile;
-const setUserFacts = mem.setUserFacts;
-
-
+  const safeChatLog = Array.isArray(chatLog) ? chatLog : [];
+  const mem = useMemory() || {};
+  const chatLog = mem.chatLog ?? [];
+  const setChatLog = mem.setChatLog;
+  const setDailyProfile = mem.setDailyProfile;  
+  const setCoreProfile = mem.setCoreProfile;
+  const setUserFacts = mem.setUserFacts;
 
   const [input, setInput] = useState("");
   const [pending, setPending] = useState(false);
