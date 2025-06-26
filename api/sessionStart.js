@@ -1,38 +1,46 @@
+import memory from "../src/utils/memory.js";
+
 export default async function handler(req, res) {
   if (req.method !== "GET") {
     res.status(405).json({ error: "Method not allowed" });
     return;
   }
 
-  const DIFY_API_KEY = process.env.DIFY_API_KEY;
-  const DIFY_API_URL = process.env.DIFY_API_URL || "https://api.dify.ai/v1";
-  const DIFY_DATASET_ID = process.env.DIFY_DATASET_ID;
-
-  async function getProfile(profileType = "daily_profile", limit = 1) {
-    const url = new URL(`${DIFY_API_URL}/datasets/${DIFY_DATASET_ID}/documents`);
-    url.searchParams.append("metadata.type", profileType);
-    url.searchParams.append("order_by", "-created_at");
-    url.searchParams.append("limit", limit.toString());
-
-    const headers = {
-      Authorization: `Bearer ${DIFY_API_KEY}`,
-      "Content-Type": "application/json",
-    };
-
-    const r = await fetch(url.toString(), { headers });
-    const raw = await r.text();
-    if (!r.ok) throw new Error(`getProfile ${profileType} failed: ${r.status} - ${raw}`);
-    const data = JSON.parse(raw);
-    return data?.data?.map((d) => d.text) || [];
-  }
-
   try {
-    const dailyProfile = await getProfile("daily_profile");
-    const coreProfile = await getProfile("core_profile");
+    const today = new Date().toISOString().slice(0, 10);
+
+    // Always fetch today's daily
+    const dailyProfileArr = await memory.getProfile("daily_profile", 1);
+    const dailyProfile = dailyProfileArr[0] || "";
+
+    // Fetch today's long/core, or generate if missing
+    let longProfileArr = await memory.getProfile("long_term_profile", 1);
+    let coreProfileArr = await memory.getProfile("core_profile", 1);
+
+    let longProfile = longProfileArr[0] || "";
+    let coreProfile = coreProfileArr[0] || "";
+
+    // If today's long/core are missing, generate them now!
+    if (!longProfile || !coreProfile) {
+      // Fetch up to last 7 daily profiles for summarization
+      const last7Daily = await memory.getProfile("daily_profile", 7);
+      // Summarize into long-term
+      longProfile = await memory.summarizeLongTermProfile(last7Daily);
+      await memory.saveProfile(longProfile, "long_term_profile", { date: today });
+
+      // Use previous core profile for continuity
+      const prevCoreArr = await memory.getProfile("core_profile", 1);
+      const prevCore = prevCoreArr[0] || "";
+
+      // Summarize new core from long + previous core
+      coreProfile = await memory.summarizeCoreProfile(longProfile + "\n" + prevCore);
+      await memory.saveProfile(coreProfile, "core_profile", { date: today });
+    }
 
     res.status(200).json({
-      dailyProfile: dailyProfile || "",
-      coreProfile: coreProfile || "",
+      dailyProfile,
+      longProfile,
+      coreProfile,
     });
   } catch (error) {
     console.error("[sessionStart] Error:", error.message);
