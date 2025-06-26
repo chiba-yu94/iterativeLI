@@ -28,6 +28,8 @@ function AppInner() {
   const [input, setInput] = useState("");
   const [pending, setPending] = useState(false);
   const [awaitingName, setAwaitingName] = useState(false);
+  const [awaitingMood, setAwaitingMood] = useState(false);
+  const [userName, setUserName] = useState("");
   const today = new Date().toISOString().slice(0, 10);
   const [loadedDate, setLoadedDate] = useState(localStorage.getItem("ili-memory-date"));
 
@@ -80,6 +82,33 @@ function AppInner() {
     initMemory();
   }, []);
 
+  // --- Name extraction using GPT ---
+  async function extractNameFromInput(inputText) {
+    // Note: You may want to move your OpenAI key into a backend API for security
+    const prompt = `
+Extract only the user's preferred name from this message.
+Example: "Call me Yuichi" → "Yuichi", "You can call me Anna" → "Anna", "Yuichi" → "Yuichi".
+If no clear name, just return the input as is.
+Input: ${inputText}
+Name:`;
+    const res = await fetch("https://api.openai.com/v1/chat/completions", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${process.env.OPENAI_API_KEY}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        model: "gpt-3.5-turbo",
+        messages: [{ role: "user", content: prompt }],
+        temperature: 0,
+        max_tokens: 16,
+      }),
+    });
+    const data = await res.json();
+    return data?.choices?.[0]?.message?.content?.trim() || inputText;
+  }
+
+  // --- Gradual bot reply ---
   const revealReply = (text) => {
     setPending(true);
     const words = text.split(" ");
@@ -97,43 +126,56 @@ function AppInner() {
     step();
   };
 
+  // --- Main sendMessage logic ---
   const sendMessage = async e => {
     e.preventDefault();
     if (!input.trim()) return;
 
-    // If awaiting user name for onboarding:
-if (awaitingName) {
-  const userMsg = { role: "user", text: input.trim() };
-  const newLog = [...chatLog, userMsg];
-  setChatLog(newLog);
+    // Step 1: User is answering onboarding name
+    if (awaitingName) {
+      const userMsg = { role: "user", text: input.trim() };
+      const extractedName = await extractNameFromInput(input.trim());
+      setUserName(extractedName);
+      const newLog = [...chatLog, userMsg, { role: "bot", text: `Hi, ${extractedName}! How are you feeling today?` }];
+      setChatLog(newLog);
 
-  // Compose formatted daily profile string!
-  const name = input.trim();
-  const summary = `Name: ${name}
+      setAwaitingName(false);
+      setAwaitingMood(true);
+      setInput("");
+      return;
+    }
+
+    // Step 2: User is answering mood
+    if (awaitingMood) {
+      const moodMsg = { role: "user", text: input.trim() };
+      const fullLog = [...chatLog, moodMsg];
+      setChatLog(fullLog);
+
+      // Compose summary
+      const summary = `Name: ${userName}
 Likes:
 Dislikes:
-Typical Mood/Emotion:
-Current Mood/Emotion:
+Typical Mood/Emotion: ${input.trim()}
+Current Mood/Emotion: ${input.trim()}
 Recent Highlights (bullet points):
 Aspirations/Concerns:
 Favorite Topics:
 Important Reflections (bullet points):`;
 
-  // Save as first daily_profile and build memory (***must include summary!***)
-  await fetch("/api/memory", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ chatLog: [userMsg], summary, updateProfile: true }),
-  });
+      // Save as first daily_profile and build memory
+      await fetch("/api/memory", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ chatLog: fullLog, summary, updateProfile: true }),
+      });
 
-  setAwaitingName(false);
-  setInput("");
-  window.location.reload(); // will now trigger memory boot as usual
-  return;
-}
+      setAwaitingMood(false);
+      setInput("");
+      window.location.reload(); // now triggers memory boot as usual
+      return;
+    }
 
-
-    // Normal chat send
+    // --- Existing daily_profile: normal chat send ---
     if (loadedDate !== today) {
       await fetch("/api/memory", {
         method:  "POST",
@@ -181,6 +223,7 @@ Important Reflections (bullet points):`;
     </>
   );
 }
+
 
 export default function App() {
   return (
