@@ -33,7 +33,6 @@ function AppInner() {
   const today = new Date().toISOString().slice(0, 10);
   const [loadedDate, setLoadedDate] = useState(localStorage.getItem("ili-memory-date"));
 
-  // On mount: check memory, or trigger onboarding greeting
   useEffect(() => {
     async function initMemory() {
       if (loadedDate === today) {
@@ -49,7 +48,6 @@ function AppInner() {
           const res = await fetch("/api/sessionStart");
           const data = await res.json();
           if (data.onboarding) {
-            // Choose random onboarding greeting
             const onboardingMsg = onboardingGreetings[Math.floor(Math.random() * onboardingGreetings.length)];
             setChatLog([{ role: "bot", text: onboardingMsg }]);
             setAwaitingName(true);
@@ -84,7 +82,7 @@ function AppInner() {
 
   // --- Name extraction using GPT ---
   async function extractNameFromInput(inputText) {
-    // Note: You may want to move your OpenAI key into a backend API for security
+    // NOTE: This is for demo/dev only! Use a secure backend API in production!
     const prompt = `
 Extract only the user's preferred name from this message.
 Example: "Call me Yuichi" → "Yuichi", "You can call me Anna" → "Anna", "Yuichi" → "Yuichi".
@@ -136,7 +134,11 @@ Name:`;
       const userMsg = { role: "user", text: input.trim() };
       const extractedName = await extractNameFromInput(input.trim());
       setUserName(extractedName);
-      const newLog = [...chatLog, userMsg, { role: "bot", text: `Hi, ${extractedName}! How are you feeling today?` }];
+      const newLog = [
+        ...chatLog,
+        userMsg,
+        { role: "bot", text: `Hi, ${extractedName}! How are you feeling today?` }
+      ];
       setChatLog(newLog);
 
       setAwaitingName(false);
@@ -151,7 +153,7 @@ Name:`;
       const fullLog = [...chatLog, moodMsg];
       setChatLog(fullLog);
 
-      // Compose summary
+      // Compose summary (save both name and mood)
       const summary = `Name: ${userName}
 Likes:
 Dislikes:
@@ -166,12 +168,16 @@ Important Reflections (bullet points):`;
       await fetch("/api/memory", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ chatLog: fullLog, summary, updateProfile: true }),
+        body: JSON.stringify({
+          chatLog: fullLog,
+          summary,
+          updateProfile: true
+        }),
       });
 
       setAwaitingMood(false);
       setInput("");
-      window.location.reload(); // now triggers memory boot as usual
+      window.location.reload();
       return;
     }
 
@@ -223,7 +229,6 @@ Important Reflections (bullet points):`;
     </>
   );
 }
-
 
 export default function App() {
   return (
