@@ -83,10 +83,10 @@ async function getProfile(profileType = "daily_profile", limit = 1) {
 
 export default {
   saveMemory,
-  getMemories,
   saveProfile,
   getProfile,
   summarizeAsProfile,
   summarizeLongTermProfile,
   summarizeCoreProfile,
 };
+
