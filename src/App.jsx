@@ -1,104 +1,120 @@
 // src/App.jsx
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
+import { MemoryProvider, useMemory } from "./MemoryProvider";
 import SoulPrint from "./SoulPrint";
 import ChatArea from "./ChatArea";
-import MemoryControls from "./MemoryControls";
 import AutoSaveOnClose from "./AutoSaveOnClose";
-import { useFirstMessage } from "./hooks/useFirstMessage";
+import MemoryControls from "./MemoryControls";
 import { buildIntroFromMemory } from "./utils/promptBuilder";
-import { MemoryProvider, useMemory } from "./MemoryProvider";
 import "./App.css";
 
 function AppInner() {
+  const { 
+    chatLog, setChatLog, 
+    setDailyProfile, setCoreProfile, setUserFacts 
+  } = useMemory();
+
+  const [input, setInput] = useState("");
   const [pending, setPending] = useState(false);
-  const [input, setInput]     = useState("");
-  const [partialReply, setPartialReply] = useState("");
-  const [hasFetched, setHasFetched] = useState(false);
 
-  const isFirstMessageToday = useFirstMessage();
-  const { chatLog, setChatLog, setDailyProfile, setCoreProfile, setUserFacts } =
-    useMemory();
+  const today = new Date().toISOString().slice(0,10);
+  const [loadedDate, setLoadedDate] = useState(localStorage.getItem("ili-memory-date"));
 
-  // Inject memory on first user message of the day
-  const fetchMemoryOnce = async () => {
-    if (hasFetched || !isFirstMessageToday) return;
-    setHasFetched(true);
+  // On mount: either hydrate from localStorage or call sessionStart
+  useEffect(() => {
+    async function initMemory() {
+      if (loadedDate === today) {
+        // use cached profiles
+        const daily = localStorage.getItem("ili-daily") || "";
+        const core  = localStorage.getItem("ili-core")  || "";
+        setDailyProfile(daily);
+        setCoreProfile(core);
+        extractFacts(daily);
+        const intro = buildIntroFromMemory(core, daily);
+        setChatLog([{ role: "bot", text: intro }]);
+      } else {
+        // fetch from server and cache
+        try {
+          const res = await fetch("/api/sessionStart");
+          const { dailyProfile, coreProfile } = await res.json();
+          setDailyProfile(dailyProfile);
+          setCoreProfile(coreProfile);
+          extractFacts(dailyProfile);
 
-    try {
-      const resp = await fetch("/api/sessionStart");
-      const { dailyProfile, longProfile, coreProfile } = await resp.json();
+          localStorage.setItem("ili-daily", dailyProfile);
+          localStorage.setItem("ili-core", coreProfile);
+          localStorage.setItem("ili-memory-date", today);
+          setLoadedDate(today);
 
-      setDailyProfile(dailyProfile);
-      setCoreProfile(coreProfile);
+          const intro = buildIntroFromMemory(coreProfile, dailyProfile);
+          setChatLog([{ role: "bot", text: intro }]);
+        } catch {
+          setChatLog([{ role: "bot", text: "Memory load failed—starting fresh." }]);
+        }
+      }
+    }
 
-      // extract simple key/value facts from daily
+    function extractFacts(dailyText) {
       const facts = {};
-      dailyProfile.split("\n").forEach((line) => {
+      dailyText.split("\n").forEach(line => {
         const [k, ...rest] = line.split(":");
         if (k && rest.length) facts[k.trim()] = rest.join(":").trim();
       });
       setUserFacts(facts);
-
-      // If fresh, push an intro
-      if (!localStorage.getItem("ili-latest-chat")) {
-        const intro = buildIntroFromMemory(coreProfile, dailyProfile);
-        setChatLog([{ role: "bot", text: intro || "Hello! What’s your name?" }]);
-      }
-    } catch (err) {
-      console.error("Memory injection failed:", err);
-      setChatLog([{ role: "bot", text: "Memory load failed – starting fresh." }]);
     }
-  };
 
-  const revealReply = (full) => {
-    const words = full.split(" ");
-    setPartialReply("");
-    let idx = 0;
+    initMemory();
+  }, []);
+
+  const revealReply = (text) => {
+    setPending(true);
+    const words = text.split(" ");
+    let i = 0, out = "";
     const step = () => {
-      if (idx < words.length) {
-        setPartialReply((p) => p + (p ? " " : "") + words[idx]);
-        idx++;
-        setTimeout(step, 75);
+      if (i < words.length) {
+        out += (i ? " " : "") + words[i++];
+        setChatLog(cl => [...cl.filter(m=>m.role!=="typing"), { role: "typing", text: out }]);
+        setTimeout(step, 80);
       } else {
-        setChatLog((c) => [...c, { role: "bot", text: full }]);
-        setPartialReply("");
+        setChatLog(cl => [...cl.filter(m=>m.role!=="typing"), { role: "bot", text }]);
         setPending(false);
       }
     };
     step();
   };
 
-  const sendMessage = async (e) => {
+  const sendMessage = async e => {
     e.preventDefault();
     if (!input.trim()) return;
 
-    // On the very first user message of the day:
-    if (isFirstMessageToday && !hasFetched) {
+    // Before the very first user message of the day, save & rebuild profiles
+    if (loadedDate !== today) {
       await fetch("/api/memory", {
-        method: "POST",
+        method:  "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ chatLog, updateProfile: true }),
+        body:    JSON.stringify({ chatLog, updateProfile: true }),
       });
-      await fetchMemoryOnce();
+      // now re-run sessionStart logic
+      localStorage.removeItem("ili-memory-date");
+      window.location.reload();
+      return;
     }
 
-    const newLog = [...chatLog, { role: "user", text: input }];
-    setChatLog(newLog);
-    setPending(true);
-
+    // Normal send
+    const upd = [...chatLog, { role: "user", text: input }];
+    setChatLog(upd);
     try {
-      const { reply } = await fetch("/api/chat", {
-        method: "POST",
+      const res = await fetch("/api/chat", {
+        method:  "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ message: input, chatLog: newLog }),
-      }).then((r) => r.json());
-      revealReply(reply || "...");      
-    } catch (err) {
-      console.error("Chat error:", err);
-      setChatLog((c) => [...c, { role: "bot", text: "Oops, try again." }]);
+        body:    JSON.stringify({ message: input, chatLog: upd }),
+      });
+      const { reply } = await res.json();
+      revealReply(reply || "…");
+    } catch {
+      setChatLog(cl => [...cl, { role: "bot", text: "Oops—something went wrong." }]);
       setPending(false);
     }
-
     setInput("");
   };
 
@@ -108,14 +124,14 @@ function AppInner() {
       <div className="ili-container">
         <SoulPrint breathing={pending} coreGlow={pending} />
         <ChatArea
-          messages={chatLog}
-          partialReply={partialReply}
+          messages={chatLog.filter(m => m.role!=="typing")}
+          partialReply={chatLog.find(m=>m.role==="typing")?.text || ""}
           pending={pending}
           input={input}
           setInput={setInput}
           sendMessage={sendMessage}
         />
-        <MemoryControls chatLog={chatLog} />
+        <MemoryControls />
       </div>
     </>
   );
