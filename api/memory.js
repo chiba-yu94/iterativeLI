@@ -1,39 +1,48 @@
-// /api/memory.js
-import memory from "../src/utils/memory.js";
+// api/memory.js
+import {
+  saveProfile,
+  getProfile,
+  summarizeAsProfile,
+  summarizeLongTermProfile,
+  summarizeCoreProfile,
+} from "../src/utils/memory.js";
 
 export default async function handler(req, res) {
   if (req.method !== "POST") {
-    res.status(405).json({ error: "Method not allowed" });
-    return;
+    res.setHeader("Allow", "POST");
+    return res.status(405).end();
   }
 
+  const { chatLog, updateProfile = false } = req.body;
+  if (!Array.isArray(chatLog) || chatLog.length === 0) {
+    return res.status(400).json({ error: "chatLog must be a non-empty array" });
+  }
+
+  const today = new Date().toISOString().slice(0, 10);
+
   try {
-    const today = new Date().toISOString().slice(0, 10);
-    const { chatLog, updateProfile = false, coreProfile = null } = req.body;
-
-    if (!Array.isArray(chatLog) || chatLog.length === 0) {
-      return res.status(400).json({ error: "Invalid or empty chatLog" });
-    }
-
-    // 1. Generate daily profile
-    const dailyText = await memory.summarizeAsProfile(chatLog);
-    const dailySave = await memory.saveProfile(dailyText, "daily_profile", { date: today });
+    // 1) Daily
+    const dailyText = await summarizeAsProfile(chatLog);
+    await saveProfile(dailyText, "daily_profile", { date: today });
 
     let coreSummary = null;
 
-    // 2. Optionally generate long-term and core profile
-    if (updateProfile && coreProfile === null) {
-      const past7 = await memory.getProfile("daily_profile", 7);
-      const longTerm = await memory.summarizeLongTermProfile(past7);
-      await memory.saveProfile(longTerm, "long_term_profile", { date: today });
+    // 2) If requested, regenerate long-term & core
+    if (updateProfile) {
+      const last7 = await getProfile("daily_profile", 7);
+      const longText = await summarizeLongTermProfile(last7);
+      await saveProfile(longText, "long_term_profile", { date: today });
 
-      coreSummary = await memory.summarizeCoreProfile(longTerm);
-      await memory.saveProfile(coreSummary, "core_profile", { date: today });
+      const prevCoreArr = await getProfile("core_profile", 1);
+      const prevCore = prevCoreArr[0] || "";
+      const newCore = await summarizeCoreProfile(longText + "\n" + prevCore);
+      await saveProfile(newCore, "core_profile", { date: today });
+      coreSummary = newCore;
     }
 
-    res.status(200).json({ ok: true, coreSummary });
+    return res.status(200).json({ ok: true, coreSummary });
   } catch (err) {
-    console.error("[memory.js] Error saving memory:", err);
-    res.status(500).json({ error: err.message });
+    console.error("[api/memory] error:", err);
+    return res.status(500).json({ error: err.message });
   }
 }
