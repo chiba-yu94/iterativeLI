@@ -13,34 +13,38 @@ export default async function handler(req, res) {
   }
 
   try {
-    const today = new Date().toISOString().slice(0,10);
+    const today = new Date().toISOString().slice(0, 10);
     const { chatLog, text, summary, updateProfile = false } = req.body;
 
-    let dailyText = "";
-
-    // 1. Accept text, summary, or fallback to chatLog summarization
-    if (text && typeof text === "string" && text.trim()) {
-      dailyText = text.trim();
-    } else if (summary && typeof summary === "string" && summary.trim()) {
-      dailyText = summary.trim();
+    // Accept either 'summary', 'text', or fallback to summarized chatLog
+    let content = "";
+    if (typeof summary === "string" && summary.trim()) {
+      content = summary.trim();
+    } else if (typeof text === "string" && text.trim()) {
+      content = text.trim();
     } else if (Array.isArray(chatLog) && chatLog.length > 0) {
-      dailyText = await summarizeAsProfile(chatLog);
+      content = (await summarizeAsProfile(chatLog)).trim();
     }
 
-    if (!dailyText || dailyText.trim() === "") {
-      return res.status(400).json({ error: "No valid daily summary provided to save." });
+    if (!content) {
+      // Enhanced error: let frontend know what's missing
+      return res.status(400).json({
+        error:
+          "No valid memory content provided: please include 'summary', 'text', or a non-empty chatLog.",
+      });
     }
 
-    await saveProfile(dailyText, "daily_profile", { date: today });
+    // Save daily profile (content always validated above)
+    await saveProfile(content, "daily_profile", { date: today });
 
     let coreSummary = null;
     if (updateProfile) {
-      // 2) Build long_term from last 7 daily
+      // Get last 7 daily profiles for long_term
       const last7 = await getProfile("daily_profile", 7);
       const longText = await summarizeLongTermProfile(last7);
       await saveProfile(longText, "long_term_profile", { date: today });
 
-      // 3) Build new core from (long + previous core)
+      // Get previous core, summarize with new long term
       const prevCoreArr = await getProfile("core_profile", 1);
       const prevCore = prevCoreArr[0] || "";
       coreSummary = await summarizeCoreProfile(longText, prevCore);
