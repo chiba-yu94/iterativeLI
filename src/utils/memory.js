@@ -1,4 +1,5 @@
 // src/utils/memory.js
+
 const DIFY_API_KEY    = process.env.DIFY_API_KEY;
 const DIFY_API_URL    = process.env.DIFY_API_URL || "https://api.dify.ai/v1";
 const DIFY_DATASET_ID = process.env.DIFY_DATASET_ID;
@@ -7,30 +8,30 @@ const OPENAI_API_KEY  = process.env.OPENAI_API_KEY;
 function getHeaders() {
   return {
     Authorization: `Bearer ${DIFY_API_KEY}`,
-    "Content-Type":  "application/json",
+    "Content-Type": "application/json",
   };
 }
 
-export async function saveProfile(text, type = "daily_profile", metadata = {}) {
-  // Defensive check
-  if (!text || typeof text !== "string" || text.trim() === "") {
-    throw new Error("Cannot saveProfile: 'text' is missing or empty");
+export async function saveProfile(content, type = "daily_profile", metadata = {}) {
+  // Accepts either summary or text as content
+  if (!content || typeof content !== "string" || !content.trim()) {
+    throw new Error("Cannot saveProfile: 'summary' or 'text' is missing or empty");
   }
-  const date = metadata.date || new Date().toISOString().slice(0,10);
+  const date = metadata.date || new Date().toISOString().slice(0, 10);
   const name = (type === "core_profile" || type === "long_term_profile")
     ? type
     : `${type}-${date}`;
   const res = await fetch(
     `${DIFY_API_URL}/datasets/${DIFY_DATASET_ID}/document/create_by_text`,
     {
-      method:  "POST",
+      method: "POST",
       headers: getHeaders(),
-      body:    JSON.stringify({
+      body: JSON.stringify({
         name,
-        text,
+        text: content,
         indexing_technique: "economy",
-        process_rule:      { mode: "automatic" },
-        metadata:          { ...metadata, type, date },
+        process_rule: { mode: "automatic" },
+        metadata: { ...metadata, type, date },
       }),
     }
   );
@@ -51,7 +52,7 @@ export async function getProfile(type = "daily_profile", limit = 1) {
   const text = await res.text();
   if (!res.ok) throw new Error(`getProfile ${type} failed: ${res.status} – ${text}`);
   const data = JSON.parse(text);
-  return data.data.map(d => d.text);
+  return data.data.map((d) => d.text);
 }
 
 export async function summarizeAsProfile(chatLog, prev = "") {
@@ -77,16 +78,16 @@ Favorite Topics:
 Important Reflections (bullet points):
   `;
   const res = await fetch("https://api.openai.com/v1/chat/completions", {
-    method:  "POST",
+    method: "POST",
     headers: {
       Authorization: `Bearer ${OPENAI_API_KEY}`,
       "Content-Type": "application/json",
     },
     body: JSON.stringify({
-      model:       "gpt-3.5-turbo",
-      messages:    [{ role: "user", content: prompt }],
+      model: "gpt-3.5-turbo",
+      messages: [{ role: "user", content: prompt }],
       temperature: 0.7,
-      max_tokens:  512,
+      max_tokens: 512,
     }),
   });
   const j = await res.json();
@@ -124,25 +125,27 @@ Important Reflections (bullet points):
 ${profiles.join("\n\n---\n\n")}
   `;
   const res = await fetch("https://api.openai.com/v1/chat/completions", {
-    method:  "POST",
+    method: "POST",
     headers: {
       Authorization: `Bearer ${OPENAI_API_KEY}`,
       "Content-Type": "application/json",
     },
     body: JSON.stringify({
-      model:       "gpt-3.5-turbo",
-      messages:    [{ role: "user", content: prompt }],
+      model: "gpt-3.5-turbo",
+      messages: [{ role: "user", content: prompt }],
       temperature: 0.7,
-      max_tokens:  1024,
+      max_tokens: 1024,
     }),
   });
   const j = await res.json();
   return j.choices[0].message.content.trim();
 }
 
-export async function summarizeCoreProfile(longProfiles) {
+export async function summarizeCoreProfile(longProfiles, prevCore = "") {
   // Accept either a string or an array
-  let longText = Array.isArray(longProfiles) ? longProfiles.join("\n\n") : (longProfiles || "");
+  let longText = Array.isArray(longProfiles)
+    ? longProfiles.join("\n\n")
+    : (longProfiles || "");
   if (!longText || longText.trim().length === 0) {
     // Nothing to summarize
     return "No core memory yet.";
@@ -152,6 +155,7 @@ You are I.L.I.
 The following is the user's long-term memory and/or previous core memory.
 
 ${longText}
+${prevCore ? `\n\nPrevious core:\n${prevCore}` : ""}
 
 Please extract only the most essential facts, leaving blank anything not present.
 Do not invent data or names.
@@ -165,16 +169,16 @@ Aspirations/Concerns:
 Important Reflections (bullet points):
   `;
   const res = await fetch("https://api.openai.com/v1/chat/completions", {
-    method:  "POST",
+    method: "POST",
     headers: {
       Authorization: `Bearer ${OPENAI_API_KEY}`,
       "Content-Type": "application/json",
     },
     body: JSON.stringify({
-      model:       "gpt-3.5-turbo",
-      messages:    [{ role: "user", content: prompt }],
+      model: "gpt-3.5-turbo",
+      messages: [{ role: "user", content: prompt }],
       temperature: 0.6,
-      max_tokens:  1024,
+      max_tokens: 1024,
     }),
   });
   const j = await res.json();
