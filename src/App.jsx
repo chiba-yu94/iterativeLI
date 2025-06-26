@@ -9,7 +9,6 @@ import { buildIntroFromMemory } from "./utils/promptBuilder";
 import "./App.css";
 
 function AppInner() {
-  const safeChatLog = Array.isArray(chatLog) ? chatLog : [];
   const {
     chatLog = [],
     setChatLog,
