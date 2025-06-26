@@ -14,13 +14,22 @@ export default async function handler(req, res) {
 
   try {
     const today = new Date().toISOString().slice(0,10);
-    const { chatLog, updateProfile = false } = req.body;
-    if (!Array.isArray(chatLog) || chatLog.length === 0) {
-      return res.status(400).json({ error: "Invalid or empty chatLog" });
+    const { chatLog, summary, updateProfile = false } = req.body;
+
+    let dailyText = "";
+
+    // If a summary is provided (onboarding case), use it directly
+    if (summary && typeof summary === "string" && summary.trim()) {
+      dailyText = summary.trim();
+    } else if (Array.isArray(chatLog) && chatLog.length > 0) {
+      // Otherwise, use normal summarization
+      dailyText = await summarizeAsProfile(chatLog);
     }
 
-    // 1) Generate & save today's daily_summary
-    const dailyText = await summarizeAsProfile(chatLog);
+    if (!dailyText || dailyText.trim() === "") {
+      return res.status(400).json({ error: "No valid daily summary provided to save." });
+    }
+
     await saveProfile(dailyText, "daily_profile", { date: today });
 
     let coreSummary = null;
