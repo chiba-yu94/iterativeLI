@@ -1,7 +1,7 @@
 // SaveReflectionButton.jsx
 import { useState } from "react";
 
-export default function SaveReflectionButton({ messages, pending, onSaved }) {
+export default function SaveReflectionButton({ messages = [], pending, onSaved }) {
   const [saving, setSaving] = useState(false);
 
   async function handleSave() {
@@ -51,3 +51,4 @@ export default function SaveReflectionButton({ messages, pending, onSaved }) {
     </button>
   );
 }
+
