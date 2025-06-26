@@ -8,6 +8,14 @@ import MemoryControls from "./MemoryControls";
 import { buildIntroFromMemory } from "./utils/promptBuilder";
 import "./App.css";
 
+const onboardingGreetings = [
+  "Welcome! How should I call you?",
+  "Hi there. What name or nickname would you like me to use?",
+  "Hello! What would you like me to call you today?",
+  "Hey, before we begin, how do you prefer I address you?",
+  "It’s nice to meet you. May I ask what name I should use?"
+];
+
 function AppInner() {
   const mem = useMemory() || {};
   const chatLog = mem.chatLog ?? [];
@@ -17,18 +25,16 @@ function AppInner() {
   const setUserFacts = mem.setUserFacts;
 
   const safeChatLog = Array.isArray(chatLog) ? chatLog : [];
-
   const [input, setInput] = useState("");
   const [pending, setPending] = useState(false);
-
-  const today = new Date().toISOString().slice(0,10);
+  const [awaitingName, setAwaitingName] = useState(false);
+  const today = new Date().toISOString().slice(0, 10);
   const [loadedDate, setLoadedDate] = useState(localStorage.getItem("ili-memory-date"));
 
-  // On mount: either hydrate from localStorage or call sessionStart
+  // On mount: check memory, or trigger onboarding greeting
   useEffect(() => {
     async function initMemory() {
       if (loadedDate === today) {
-        // use cached profiles
         const daily = localStorage.getItem("ili-daily") || "";
         const core  = localStorage.getItem("ili-core")  || "";
         setDailyProfile(daily);
@@ -37,21 +43,25 @@ function AppInner() {
         const intro = buildIntroFromMemory(core, daily);
         setChatLog([{ role: "bot", text: intro }]);
       } else {
-        // fetch from server and cache
         try {
           const res = await fetch("/api/sessionStart");
-          const { dailyProfile, coreProfile } = await res.json();
-          setDailyProfile(dailyProfile);
-          setCoreProfile(coreProfile);
-          extractFacts(dailyProfile);
-
-          localStorage.setItem("ili-daily", dailyProfile);
-          localStorage.setItem("ili-core", coreProfile);
-          localStorage.setItem("ili-memory-date", today);
-          setLoadedDate(today);
-
-          const intro = buildIntroFromMemory(coreProfile, dailyProfile);
-          setChatLog([{ role: "bot", text: intro }]);
+          const data = await res.json();
+          if (data.onboarding) {
+            // Choose random onboarding greeting
+            const onboardingMsg = onboardingGreetings[Math.floor(Math.random() * onboardingGreetings.length)];
+            setChatLog([{ role: "bot", text: onboardingMsg }]);
+            setAwaitingName(true);
+          } else {
+            setDailyProfile(data.dailyProfile);
+            setCoreProfile(data.coreProfile);
+            extractFacts(data.dailyProfile);
+            localStorage.setItem("ili-daily", data.dailyProfile);
+            localStorage.setItem("ili-core", data.coreProfile);
+            localStorage.setItem("ili-memory-date", today);
+            setLoadedDate(today);
+            const intro = buildIntroFromMemory(data.coreProfile, data.dailyProfile);
+            setChatLog([{ role: "bot", text: intro }]);
+          }
         } catch {
           setChatLog([{ role: "bot", text: "Memory load failed—starting fresh." }]);
         }
@@ -91,14 +101,31 @@ function AppInner() {
     e.preventDefault();
     if (!input.trim()) return;
 
-    // Before the very first user message of the day, save & rebuild profiles
+    // If awaiting user name for onboarding:
+    if (awaitingName) {
+      const userMsg = { role: "user", text: input.trim() };
+      const newLog = [...chatLog, userMsg];
+      setChatLog(newLog);
+
+      // Save as first daily_profile and build memory
+      await fetch("/api/memory", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ chatLog: [userMsg], updateProfile: true }),
+      });
+      setAwaitingName(false);
+      setInput("");
+      window.location.reload(); // will now trigger memory boot as usual
+      return;
+    }
+
+    // Normal chat send
     if (loadedDate !== today) {
       await fetch("/api/memory", {
         method:  "POST",
         headers: { "Content-Type": "application/json" },
         body:    JSON.stringify({ chatLog, updateProfile: true }),
       });
-      // now re-run sessionStart logic
       localStorage.removeItem("ili-memory-date");
       window.location.reload();
       return;
