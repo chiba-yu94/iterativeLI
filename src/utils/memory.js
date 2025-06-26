@@ -11,14 +11,11 @@ function getHeaders() {
   };
 }
 
-// Save a structured profile (daily, long_term, or core)
 export async function saveProfile(text, type = "daily_profile", metadata = {}) {
   const date = metadata.date || new Date().toISOString().slice(0,10);
-  // overwrite core & long_term each day, append date only for daily
   const name = (type === "core_profile" || type === "long_term_profile")
     ? type
     : `${type}-${date}`;
-
   const res = await fetch(
     `${DIFY_API_URL}/datasets/${DIFY_DATASET_ID}/document/create_by_text`,
     {
@@ -40,7 +37,6 @@ export async function saveProfile(text, type = "daily_profile", metadata = {}) {
   return res.json();
 }
 
-// Fetch up to `limit` profiles of given type, newest first
 export async function getProfile(type = "daily_profile", limit = 1) {
   const url = new URL(`${DIFY_API_URL}/datasets/${DIFY_DATASET_ID}/documents`);
   url.searchParams.append("metadata.type", type);
@@ -54,7 +50,6 @@ export async function getProfile(type = "daily_profile", limit = 1) {
   return data.data.map(d => d.text);
 }
 
-// Summarize raw chatLog into a daily profile
 export async function summarizeAsProfile(chatLog, prev = "") {
   const prompt = `
 You are I.L.I., a gentle digital companion.
@@ -94,13 +89,23 @@ Important Reflections (bullet points):
   return j.choices[0].message.content.trim();
 }
 
-// Summarize up to 7 daily profiles into a long-term profile
+// --- GUARD AGAINST EMPTY OR SINGLE PROFILE ---
 export async function summarizeLongTermProfile(profiles) {
+  if (!profiles || profiles.length === 0) {
+    // Nothing to summarize—don't hallucinate!
+    return "No long-term memory yet. (Please complete onboarding!)";
+  }
+  if (profiles.length === 1) {
+    // Just return the single profile (don't call GPT)
+    return profiles[0];
+  }
   const prompt = `
 You are I.L.I.
 Here are up to 7 daily user profiles.
 
 Please summarize their themes, recurring emotions, patterns, and reflections.
+If any field is missing, leave it blank. Do not invent new names or details.
+
 Preserve structure and return in this format:
 
 Name:
@@ -131,20 +136,21 @@ ${profiles.join("\n\n---\n\n")}
   return j.choices[0].message.content.trim();
 }
 
-// Summarize a new core from long_term + previous core
-export async function summarizeCoreProfile(longText, prevCore = "") {
+export async function summarizeCoreProfile(longProfiles) {
+  // Accept either a string or an array
+  let longText = Array.isArray(longProfiles) ? longProfiles.join("\n\n") : (longProfiles || "");
+  if (!longText || longText.trim().length === 0) {
+    // Nothing to summarize
+    return "No core memory yet.";
+  }
   const prompt = `
 You are I.L.I.
-The following are the new long-term memory and the previous core memory.
+The following is the user's long-term memory and/or previous core memory.
 
-New long-term memory:
 ${longText}
 
-Previous core memory:
-${prevCore}
-
-Please extract the most essential facts that define the user's core personality and preferences.
-Keep format below, bullet where appropriate.
+Please extract only the most essential facts, leaving blank anything not present.
+Do not invent data or names.
 
 Format:
 Name:
