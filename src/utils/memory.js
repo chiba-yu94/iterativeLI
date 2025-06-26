@@ -33,9 +33,12 @@ async function saveMemory(summary, metadata = {}) {
 // Save structured profile (daily, long_term, or core)
 async function saveProfile(text, type = "daily_profile", metadata = {}) {
   const date = metadata.date || new Date().toISOString().slice(0, 10);
+
+  // 👇 Use fixed name for overwrite types, dated name for accumulating types
   const name = ["core_profile", "long_term_profile"].includes(type)
-    ? type               // overwrite: fixed name
-    : `${type}-${date}`; // accumulate: date-based name
+    ? type // overwrite the same name daily
+    : `${type}-${date}`; // unique per day for daily profiles
+
   const res = await fetch(
     `${DIFY_API_URL}/datasets/${DIFY_DATASET_ID}/document/create_by_text`,
     {
@@ -50,9 +53,14 @@ async function saveProfile(text, type = "daily_profile", metadata = {}) {
       }),
     }
   );
-  if (!res.ok) throw new Error(`Dify saveProfile failed: ${res.status} - ${await res.text()}`);
+
+  if (!res.ok) {
+    throw new Error(`Dify saveProfile failed: ${res.status} - ${await res.text()}`);
+  }
+
   return res.json();
 }
+
 
 
 // Fetch profiles by type (daily, long_term, core)
