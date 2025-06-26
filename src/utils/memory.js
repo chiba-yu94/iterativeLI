@@ -35,9 +35,10 @@ async function saveProfile(text, type = "daily_profile", metadata = {}) {
   const date = metadata.date || new Date().toISOString().slice(0, 10);
 
   // 👇 Use fixed name for overwrite types, dated name for accumulating types
-  const name = ["core_profile", "long_term_profile"].includes(type)
-    ? type // overwrite the same name daily
-    : `${type}-${date}`; // unique per day for daily profiles
+const random = Math.random().toString(36).slice(2, 7);
+const name = ["core_profile", "long_term_profile"].includes(type)
+  ? type
+  : `${type}-${date}-${random}`;
 
   const res = await fetch(
     `${DIFY_API_URL}/datasets/${DIFY_DATASET_ID}/document/create_by_text`,
