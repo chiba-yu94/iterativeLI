@@ -14,11 +14,26 @@ export default async function handler(req, res) {
   try {
     const today = new Date().toISOString().slice(0,10);
 
-    // 1) Fetch ALL daily_profile docs (max 7)
-    const dailyArr = await getProfile("daily_profile", 7);
+    // 1) Fetch up to 14 recent documents of daily_profile type
+    // (Just in case: some days could have multiple daily_profile entries)
+    let rawDaily = await getProfile("daily_profile", 14);
+
+    // If getProfile ever returns more than just text, use .data or .map(doc => doc.name,...)
+    // For now, filter for "daily_profile" in case any extra junk comes back
+    const dailyArr = rawDaily.filter((entry) => {
+      // Accept if it's a string and matches pattern
+      if (typeof entry === "string") {
+        return entry.trim().length > 0;
+      }
+      // If it's an object, check name starts with "daily_profile"
+      if (entry && entry.name && entry.name.startsWith("daily_profile")) {
+        return true;
+      }
+      return false;
+    });
 
     if (!dailyArr || dailyArr.length === 0) {
-      // No memory at all yet: trigger onboarding
+      // No daily_profile files found! Trigger onboarding.
       return res.status(200).json({
         onboarding: true,
         dailyProfile: "",
