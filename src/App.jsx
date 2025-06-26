@@ -102,14 +102,14 @@ function AppInner() {
     if (!input.trim()) return;
 
     // If awaiting user name for onboarding:
-    if (awaitingName) {
-      const userMsg = { role: "user", text: input.trim() };
-      const newLog = [...chatLog, userMsg];
-      setChatLog(newLog);
-      
-    // Compose formatted daily profile string!
-    const name = input.trim();
-    const summary = `Name: ${name}
+if (awaitingName) {
+  const userMsg = { role: "user", text: input.trim() };
+  const newLog = [...chatLog, userMsg];
+  setChatLog(newLog);
+
+  // Compose formatted daily profile string!
+  const name = input.trim();
+  const summary = `Name: ${name}
 Likes:
 Dislikes:
 Typical Mood/Emotion:
@@ -118,18 +118,20 @@ Recent Highlights (bullet points):
 Aspirations/Concerns:
 Favorite Topics:
 Important Reflections (bullet points):`;
-      
-      // Save as first daily_profile and build memory
-      await fetch("/api/memory", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ chatLog: [userMsg], updateProfile: true }),
-      });
-      setAwaitingName(false);
-      setInput("");
-      window.location.reload(); // will now trigger memory boot as usual
-      return;
-    }
+
+  // Save as first daily_profile and build memory (***must include summary!***)
+  await fetch("/api/memory", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ chatLog: [userMsg], summary, updateProfile: true }),
+  });
+
+  setAwaitingName(false);
+  setInput("");
+  window.location.reload(); // will now trigger memory boot as usual
+  return;
+}
+
 
     // Normal chat send
     if (loadedDate !== today) {
