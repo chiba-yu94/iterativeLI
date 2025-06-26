@@ -44,51 +44,47 @@ function AppInner() {
     showNextWord();
   };
 
-  const fetchMemoryOnce = async () => {
-    if (hasFetchedMemory || !isFirstMessageToday) return;
-    setHasFetchedMemory(true);
-    try {
-      const [dailyRes, coreRes] = await Promise.all([
-        fetch("/api/memory?type=daily_profile&limit=1"),
-        fetch("/api/memory?type=core_profile&limit=1"),
-      ]);
-      const daily = await dailyRes.json();
-      const core = await coreRes.json();
-      const dailyText = daily?.profiles?.[0]?.text || "";
-      const coreText = core?.profiles?.[0]?.text || "";
-      setDailyProfile(dailyText);
-      setCoreProfile(coreText);
+const fetchMemoryOnce = async () => {
+  if (hasFetchedMemory || !isFirstMessageToday) return;
+  setHasFetchedMemory(true);
+  try {
+    const res = await fetch("/api/sessionStart");
+    const json = await res.json();
+    const dailyText = json.dailyProfile?.[0] || "";
+    const coreText = json.coreProfile?.[0] || "";
 
-      // extract structured user facts from daily profile
-      const facts = {};
-      dailyText.split("\n").forEach((line) => {
-        const [key, ...rest] = line.split(":");
-        if (key && rest.length > 0) {
-          facts[key.trim()] = rest.join(":").trim();
-        }
-      });
-      setUserFacts(facts);
+    setDailyProfile(dailyText);
+    setCoreProfile(coreText);
 
-      // inject memory summary or icebreaker
-      const cached = localStorage.getItem("ili-latest-chat");
-      if (!cached) {
-        const intro = buildIntroFromMemory(coreText, dailyText);
-        if (intro) {
-          setChatLog([{ role: "bot", text: intro }]);
-        } else {
-          setChatLog([
-            {
-              role: "bot",
-              text:
-                "This is your first conversation with me.\nI'd love to get to know you—what’s your name, and how are you feeling today?",
-            },
-          ]);
-        }
+    // extract structured user facts
+    const facts = {};
+    dailyText.split("\n").forEach((line) => {
+      const [key, ...rest] = line.split(":");
+      if (key && rest.length > 0) {
+        facts[key.trim()] = rest.join(":").trim();
       }
-    } catch (err) {
-      console.error("Memory injection failed:", err);
+    });
+    setUserFacts(facts);
+
+    const cached = localStorage.getItem("ili-latest-chat");
+    if (!cached) {
+      const intro = buildIntroFromMemory(coreText, dailyText);
+      if (intro) {
+        setChatLog([{ role: "bot", text: intro }]);
+      } else {
+        setChatLog([
+          {
+            role: "bot",
+            text:
+              "This is your first conversation with me.\nI'd love to get to know you—what’s your name, and how are you feeling today?",
+          },
+        ]);
+      }
     }
-  };
+  } catch (err) {
+    console.error("Memory injection failed:", err);
+  }
+};
 
   const sendMessage = async (e) => {
     e.preventDefault();
