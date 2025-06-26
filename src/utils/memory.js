@@ -1,8 +1,8 @@
 // src/utils/memory.js
-const DIFY_API_KEY    = process.env.DIFY_API_KEY;
-const DIFY_API_URL    = process.env.DIFY_API_URL || "https://api.dify.ai/v1";
+const DIFY_API_KEY = process.env.DIFY_API_KEY;
+const DIFY_API_URL = process.env.DIFY_API_URL || "https://api.dify.ai/v1";
 const DIFY_DATASET_ID = process.env.DIFY_DATASET_ID;
-const OPENAI_API_KEY  = process.env.OPENAI_API_KEY;
+const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
 
 function getHeaders() {
   return {
@@ -11,13 +11,14 @@ function getHeaders() {
   };
 }
 
-/** @returns {Promise<object>} */
-async function saveProfile(text, type = "daily_profile", metadata = {}) {
+// 1) Save a single profile document (daily, long_term, or core)
+export async function saveProfile(text, type = "daily_profile", metadata = {}) {
   const date = metadata.date || new Date().toISOString().slice(0, 10);
-  // core & long_term → overwrite same name; daily → date‐based
-  const name = ["core_profile", "long_term_profile"].includes(type)
-    ? type
-    : `${type}-${date}`;
+  // overwrite long_term_profile & core_profile each day; accumulate daily_profile
+  const name =
+    type === "daily_profile"
+      ? `${type}-${date}`
+      : type; 
 
   const res = await fetch(
     `${DIFY_API_URL}/datasets/${DIFY_DATASET_ID}/document/create_by_text`,
@@ -34,30 +35,38 @@ async function saveProfile(text, type = "daily_profile", metadata = {}) {
     }
   );
   if (!res.ok) {
-    const body = await res.text();
-    throw new Error(`saveProfile(${type}) failed: ${res.status} – ${body}`);
+    throw new Error(`saveProfile failed: ${res.status} ${await res.text()}`);
   }
   return res.json();
 }
 
-/** @returns {Promise<string[]>} */
-async function getProfile(type = "daily_profile", limit = 1) {
+// 2) Fetch the most-recent N profiles of a given type
+export async function getProfile(profileType = "daily_profile", limit = 1) {
   const url = new URL(`${DIFY_API_URL}/datasets/${DIFY_DATASET_ID}/documents`);
-  url.searchParams.set("metadata.type", type);
+  url.searchParams.set("metadata.type", profileType);
   url.searchParams.set("order_by", "-created_at");
   url.searchParams.set("limit", String(limit));
 
-  const res = await fetch(url, { headers: getHeaders(), cache: "no-store" });
-  const raw = await res.text();
-  if (!res.ok) throw new Error(`getProfile(${type}) failed: ${res.status} – ${raw}`);
-  const data = JSON.parse(raw);
-  return data.data?.map((d) => d.text) || [];
+  const res = await fetch(url.toString(), {
+    headers: getHeaders(),
+    cache: "no-store",
+  });
+  if (!res.ok) {
+    const raw = await res.text();
+    throw new Error(`getProfile ${profileType} failed: ${res.status} ${raw}`);
+  }
+  const { data } = await res.json();
+  return data.map((d) => d.text);
 }
 
-async function summarizeAsProfile(chatLog) {
+// 3) Summarizers
+export async function summarizeAsProfile(chatLog, prev = "") {
   const prompt = `
 You are I.L.I., a gentle digital companion.
 Create a new daily user profile based on today's conversation.
+
+Profile so far:
+${prev || "(empty)"}
 
 Conversation:
 ${JSON.stringify(chatLog)}
@@ -72,11 +81,13 @@ Recent Highlights (bullet points):
 Aspirations/Concerns:
 Favorite Topics:
 Important Reflections (bullet points):
-  `.trim();
-
-  const res = await fetch("https://api.openai.com/v1/chat/completions", {
+`;
+  const r = await fetch("https://api.openai.com/v1/chat/completions", {
     method: "POST",
-    headers: { Authorization: `Bearer ${OPENAI_API_KEY}`, "Content-Type": "application/json" },
+    headers: {
+      Authorization: `Bearer ${OPENAI_API_KEY}`,
+      "Content-Type": "application/json",
+    },
     body: JSON.stringify({
       model: "gpt-3.5-turbo",
       messages: [{ role: "user", content: prompt }],
@@ -84,33 +95,26 @@ Important Reflections (bullet points):
       max_tokens: 512,
     }),
   });
-  const j = await res.json();
+  const j = await r.json();
   return j.choices?.[0]?.message?.content?.trim() || "";
 }
 
-async function summarizeLongTermProfile(profiles) {
+export async function summarizeLongTermProfile(profiles) {
   const prompt = `
 You are I.L.I.
-Here are up to 7 daily user profiles:
-
-${profiles.join("\n\n---\n\n")}
+Here are up to 7 daily user profiles.
 
 Please summarize their themes, recurring emotions, patterns, and reflections.
-Return in this format:
+Preserve structure in the same format as daily.
 
-Name:
-Likes:
-Dislikes:
-Typical Mood/Emotion:
-Recent Highlights (bullet points):
-Aspirations/Concerns:
-Favorite Topics:
-Important Reflections (bullet points):
-  `.trim();
-
-  const res = await fetch("https://api.openai.com/v1/chat/completions", {
+${profiles.join("\n\n---\n\n")}
+`;
+  const r = await fetch("https://api.openai.com/v1/chat/completions", {
     method: "POST",
-    headers: { Authorization: `Bearer ${OPENAI_API_KEY}`, "Content-Type": "application/json" },
+    headers: {
+      Authorization: `Bearer ${OPENAI_API_KEY}`,
+      "Content-Type": "application/json",
+    },
     body: JSON.stringify({
       model: "gpt-3.5-turbo",
       messages: [{ role: "user", content: prompt }],
@@ -118,31 +122,26 @@ Important Reflections (bullet points):
       max_tokens: 1024,
     }),
   });
-  const j = await res.json();
+  const j = await r.json();
   return j.choices?.[0]?.message?.content?.trim() || "";
 }
 
-async function summarizeCoreProfile(longPlusPrevCore) {
+export async function summarizeCoreProfile(longTermText) {
   const prompt = `
 You are I.L.I.
-The following is a long-term memory and previous core memory:
+The following is a long-term memory of the user.
 
-${longPlusPrevCore}
+Please extract the most essential facts that define their core personality and preferences,
+merging with any existing core if provided.
 
-Please extract the most essential facts that define the user's core personality and preferences.
-Return in this format:
-
-Name:
-Likes:
-Dislikes:
-Typical Mood/Emotion:
-Aspirations/Concerns:
-Important Reflections (bullet points):
-  `.trim();
-
-  const res = await fetch("https://api.openai.com/v1/chat/completions", {
+${longTermText}
+`;
+  const r = await fetch("https://api.openai.com/v1/chat/completions", {
     method: "POST",
-    headers: { Authorization: `Bearer ${OPENAI_API_KEY}`, "Content-Type": "application/json" },
+    headers: {
+      Authorization: `Bearer ${OPENAI_API_KEY}`,
+      "Content-Type": "application/json`,
+    },
     body: JSON.stringify({
       model: "gpt-3.5-turbo",
       messages: [{ role: "user", content: prompt }],
@@ -150,14 +149,6 @@ Important Reflections (bullet points):
       max_tokens: 1024,
     }),
   });
-  const j = await res.json();
+  const j = await r.json();
   return j.choices?.[0]?.message?.content?.trim() || "";
 }
-
-export default {
-  saveProfile,
-  getProfile,
-  summarizeAsProfile,
-  summarizeLongTermProfile,
-  summarizeCoreProfile,
-};
