@@ -106,7 +106,19 @@ function AppInner() {
       const userMsg = { role: "user", text: input.trim() };
       const newLog = [...chatLog, userMsg];
       setChatLog(newLog);
-
+      
+    // Compose formatted daily profile string!
+    const name = input.trim();
+    const summary = `Name: ${name}
+Likes:
+Dislikes:
+Typical Mood/Emotion:
+Current Mood/Emotion:
+Recent Highlights (bullet points):
+Aspirations/Concerns:
+Favorite Topics:
+Important Reflections (bullet points):`;
+      
       // Save as first daily_profile and build memory
       await fetch("/api/memory", {
         method: "POST",
