@@ -14,15 +14,16 @@ export default async function handler(req, res) {
 
   try {
     const today = new Date().toISOString().slice(0,10);
-    const { chatLog, summary, updateProfile = false } = req.body;
+    const { chatLog, text, summary, updateProfile = false } = req.body;
 
     let dailyText = "";
 
-    // If a summary is provided (onboarding case), use it directly
-    if (summary && typeof summary === "string" && summary.trim()) {
+    // 1. Accept text, summary, or fallback to chatLog summarization
+    if (text && typeof text === "string" && text.trim()) {
+      dailyText = text.trim();
+    } else if (summary && typeof summary === "string" && summary.trim()) {
       dailyText = summary.trim();
     } else if (Array.isArray(chatLog) && chatLog.length > 0) {
-      // Otherwise, use normal summarization
       dailyText = await summarizeAsProfile(chatLog);
     }
 
