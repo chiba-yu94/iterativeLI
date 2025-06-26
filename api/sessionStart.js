@@ -1,43 +1,44 @@
-// pages/api/sessionStart.js
-import memory from "../../src/utils/memory.js";
+// api/sessionStart.js
+import {
+  saveProfile,
+  getProfile,
+  summarizeLongTermProfile,
+  summarizeCoreProfile,
+} from "../src/utils/memory.js";
 
 export default async function handler(req, res) {
-  if (req.method !== "GET") return res.status(405).end();
+  if (req.method !== "GET") {
+    res.setHeader("Allow", "GET");
+    return res.status(405).end();
+  }
+
+  const today = new Date().toISOString().slice(0, 10);
 
   try {
-    const today = new Date().toISOString().slice(0, 10);
+    // 1) Fetch today’s daily (if any)
+    const dailyArr = await getProfile("daily_profile", 1);
+    const dailyProfile = dailyArr[0] || "";
 
-    // 1️⃣ Always fetch today's daily_profile
-    const [dailyArr, longArr, coreArr] = await Promise.all([
-      memory.getProfile("daily_profile", 1),
-      memory.getProfile("long_term_profile", 1),
-      memory.getProfile("core_profile", 1),
-    ]);
-    let dailyProfile = dailyArr[0] || "";
-    let longProfile  = longArr[0]  || "";
-    let coreProfile  = coreArr[0]  || "";
+    // 2) Fetch today’s long & core
+    let longArr = await getProfile("long_term_profile", 1);
+    let coreArr = await getProfile("core_profile", 1);
+    let longProfile = longArr[0] || "";
+    let coreProfile = coreArr[0] || "";
 
-    // 2️⃣ If missing long or core → regenerate
+    // 3) If missing, regenerate now
     if (!longProfile || !coreProfile) {
-      // last 7 daily summaries (could be fewer)
-      const last7 = await memory.getProfile("daily_profile", 7);
+      const last7 = await getProfile("daily_profile", 7);
+      longProfile = await summarizeLongTermProfile(last7);
+      await saveProfile(longProfile, "long_term_profile", { date: today });
 
-      // create new long-term
-      longProfile = await memory.summarizeLongTermProfile(last7);
-      await memory.saveProfile(longProfile, "long_term_profile", { date: today });
-
-      // include previous core for continuity
-      const prevCoreArr = await memory.getProfile("core_profile", 1);
-      const prevCoreTxt = prevCoreArr[0] || "";
-
-      // create new core
-      coreProfile = await memory.summarizeCoreProfile(longProfile + "\n" + prevCoreTxt);
-      await memory.saveProfile(coreProfile, "core_profile", { date: today });
+      const prevCore = coreProfile;
+      coreProfile = await summarizeCoreProfile(longProfile + "\n" + prevCore);
+      await saveProfile(coreProfile, "core_profile", { date: today });
     }
 
     res.status(200).json({ dailyProfile, longProfile, coreProfile });
   } catch (err) {
-    console.error("[sessionStart] Error:", err);
+    console.error("[api/sessionStart] error:", err);
     res.status(500).json({ error: err.message });
   }
 }
