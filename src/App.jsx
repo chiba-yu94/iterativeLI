@@ -1,3 +1,4 @@
+// App.jsx
 import React, { useState } from "react";
 import SoulPrint from "./SoulPrint";
 import ChatArea from "./ChatArea";
@@ -6,6 +7,7 @@ import { MemoryProvider, useMemory } from "./MemoryProvider";
 import AutoSaveOnClose from "./AutoSaveOnClose";
 import { useFirstMessage } from "./hooks/useFirstMessage";
 import { buildIntroFromMemory } from "./utils/promptBuilder";
+import memory from "./utils/memory";  // 👈 Import your memory utility
 import "./App.css";
 
 function AppInner() {
@@ -26,6 +28,68 @@ function AppInner() {
   const isFirstMessageToday = useFirstMessage();
   const WORD_INTERVAL = 90;
 
+  // --- Ensure daily_profile is saved BEFORE sessionStart ---
+  async function saveTodayProfileIfNeeded(chatLog) {
+    const today = new Date().toISOString().slice(0, 10);
+    if (!chatLog || chatLog.length === 0) return;
+    if (localStorage.getItem("ili-daily-profile-saved") === today) return; // Already done!
+
+    // Summarize & save
+    try {
+      const dailySummary = await memory.summarizeAsProfile(chatLog);
+      await memory.saveProfile(dailySummary, "daily_profile", { date: today });
+      localStorage.setItem("ili-daily-profile-saved", today);
+      // Optionally: clear chatLog after save, up to you
+    } catch (err) {
+      console.error("Failed to save today's daily_profile:", err);
+    }
+  }
+
+  // --- Fetch and inject memory from sessionStart ---
+  const fetchMemoryOnce = async () => {
+    if (hasFetchedMemory || !isFirstMessageToday) return;
+    setHasFetchedMemory(true);
+    try {
+      const res = await fetch("/api/sessionStart");
+      const json = await res.json();
+      const dailyText = json.dailyProfile || "";
+      const coreText = json.coreProfile || "";
+      // Optionally support longText
+      // const longText = json.longProfile || "";
+
+      setDailyProfile(dailyText);
+      setCoreProfile(coreText);
+
+      // extract structured user facts
+      const facts = {};
+      dailyText.split("\n").forEach((line) => {
+        const [key, ...rest] = line.split(":");
+        if (key && rest.length > 0) {
+          facts[key.trim()] = rest.join(":").trim();
+        }
+      });
+      setUserFacts(facts);
+
+      const cached = localStorage.getItem("ili-latest-chat");
+      if (!cached) {
+        const intro = buildIntroFromMemory(coreText, dailyText);
+        if (intro) {
+          setChatLog([{ role: "bot", text: intro }]);
+        } else {
+          setChatLog([
+            {
+              role: "bot",
+              text:
+                "This is your first conversation with me.\nI'd love to get to know you—what’s your name, and how are you feeling today?",
+            },
+          ]);
+        }
+      }
+    } catch (err) {
+      console.error("Memory injection failed:", err);
+    }
+  };
+
   const revealReply = (fullText) => {
     const words = fullText.split(" ");
     setPartialReply("");
@@ -44,53 +108,13 @@ function AppInner() {
     showNextWord();
   };
 
-const fetchMemoryOnce = async () => {
-  if (hasFetchedMemory || !isFirstMessageToday) return;
-  setHasFetchedMemory(true);
-  try {
-    const res = await fetch("/api/sessionStart");
-    const json = await res.json();
-    const dailyText = json.dailyProfile?.[0] || "";
-    const coreText = json.coreProfile?.[0] || "";
-
-    setDailyProfile(dailyText);
-    setCoreProfile(coreText);
-
-    // extract structured user facts
-    const facts = {};
-    dailyText.split("\n").forEach((line) => {
-      const [key, ...rest] = line.split(":");
-      if (key && rest.length > 0) {
-        facts[key.trim()] = rest.join(":").trim();
-      }
-    });
-    setUserFacts(facts);
-
-    const cached = localStorage.getItem("ili-latest-chat");
-    if (!cached) {
-      const intro = buildIntroFromMemory(coreText, dailyText);
-      if (intro) {
-        setChatLog([{ role: "bot", text: intro }]);
-      } else {
-        setChatLog([
-          {
-            role: "bot",
-            text:
-              "This is your first conversation with me.\nI'd love to get to know you—what’s your name, and how are you feeling today?",
-          },
-        ]);
-      }
-    }
-  } catch (err) {
-    console.error("Memory injection failed:", err);
-  }
-};
-
   const sendMessage = async (e) => {
     e.preventDefault();
     if (!input.trim()) return;
 
+    // On first message of the day: save today's daily, then sessionStart (for long/core)
     if (isFirstMessageToday && !hasFetchedMemory) {
+      await saveTodayProfileIfNeeded(chatLog);
       await fetchMemoryOnce();
     }
 
