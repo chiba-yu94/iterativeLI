@@ -41,10 +41,11 @@ export default async function handler(req, res) {
     let introPrompt = "";
 
     if (cachedDate !== today) {
-      const core = await getProfile("core_profile");
-      const long = await getProfile("daily_profile");
+      const coreArr = await getProfile("core_profile");
+      const longArr = await getProfile("daily_profile");
+      const core = coreArr?.[0] || "";
+      const long = longArr?.[0] || "";
       introPrompt = buildIntroFromMemory(core, long);
-
       res.setHeader("Set-Cookie", [
         `ili-last-memory-date=${today}; Path=/; Max-Age=86400; SameSite=Lax`,
       ]);
