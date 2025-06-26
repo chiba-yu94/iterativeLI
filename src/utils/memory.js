@@ -33,13 +33,16 @@ async function saveMemory(summary, metadata = {}) {
 // Save structured profile (daily, long_term, or core)
 async function saveProfile(text, type = "daily_profile", metadata = {}) {
   const date = metadata.date || new Date().toISOString().slice(0, 10);
+  const name = ["core_profile", "long_term_profile"].includes(type)
+    ? type               // overwrite: fixed name
+    : `${type}-${date}`; // accumulate: date-based name
   const res = await fetch(
     `${DIFY_API_URL}/datasets/${DIFY_DATASET_ID}/document/create_by_text`,
     {
       method: "POST",
       headers: getHeaders(),
       body: JSON.stringify({
-        name: `${type}-${date}`,
+        name,
         text,
         indexing_technique: "economy",
         process_rule: { mode: "automatic" },
@@ -50,6 +53,7 @@ async function saveProfile(text, type = "daily_profile", metadata = {}) {
   if (!res.ok) throw new Error(`Dify saveProfile failed: ${res.status} - ${await res.text()}`);
   return res.json();
 }
+
 
 // Fetch profiles by type (daily, long_term, core)
 async function getProfile(profileType = "daily_profile", limit = 1) {
