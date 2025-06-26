@@ -9,13 +9,14 @@ import { buildIntroFromMemory } from "./utils/promptBuilder";
 import "./App.css";
 
 function AppInner() {
-  const safeChatLog = Array.isArray(chatLog) ? chatLog : [];
   const mem = useMemory() || {};
   const chatLog = mem.chatLog ?? [];
   const setChatLog = mem.setChatLog;
-  const setDailyProfile = mem.setDailyProfile;  
+  const setDailyProfile = mem.setDailyProfile;
   const setCoreProfile = mem.setCoreProfile;
   const setUserFacts = mem.setUserFacts;
+
+  const safeChatLog = Array.isArray(chatLog) ? chatLog : [];
 
   const [input, setInput] = useState("");
   const [pending, setPending] = useState(false);
@@ -127,8 +128,8 @@ function AppInner() {
       <div className="ili-container">
         <SoulPrint breathing={pending} coreGlow={pending} />
         <ChatArea
-          messages={(chatLog || []).filter(m => m.role!=="typing")}
-          partialReply={(chatLog || []).find(m=>m.role==="typing")?.text || ""}
+          messages={safeChatLog.filter(m => m.role !== "typing")}
+          partialReply={safeChatLog.find(m => m.role === "typing")?.text || ""}
           pending={pending}
           input={input}
           setInput={setInput}
