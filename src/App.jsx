@@ -17,7 +17,7 @@ function parseFacts(profileText) {
   return facts;
 }
 
-// Friendly intro builder (replace buildIntroFromMemory import)
+// Friendly intro builder
 function buildFriendlyIntro(core, daily) {
   const facts = parseFacts(core + "\n" + daily);
   const name = !facts.Name || facts.Name === "unknown" ? "friend" : facts.Name;
@@ -28,14 +28,6 @@ function buildFriendlyIntro(core, daily) {
     return `Welcome back. Hello again, ${name}. You've been reflecting on things like ${!highlights || highlights === "unknown" ? "many topics" : highlights}. Would you like to continue where we left off, or explore something new today?`;
   }
 }
-
-const onboardingGreetings = [
-  "Welcome! How should I call you?",
-  "Hi there. What name or nickname would you like me to use?",
-  "Hello! What would you like me to call you today?",
-  "Hey, before we begin, how do you prefer I address you?",
-  "It’s nice to meet you. May I ask what name I should use?"
-];
 
 function AppInner() {
   const mem = useMemory() || {};
@@ -48,9 +40,6 @@ function AppInner() {
   const safeChatLog = Array.isArray(chatLog) ? chatLog : [];
   const [input, setInput] = useState("");
   const [pending, setPending] = useState(false);
-  const [awaitingName, setAwaitingName] = useState(false);
-  const [awaitingMood, setAwaitingMood] = useState(false);
-  const [userName, setUserName] = useState("");
   const today = new Date().toISOString().slice(0, 10);
   const [loadedDate, setLoadedDate] = useState(localStorage.getItem("ili-memory-date"));
 
@@ -68,21 +57,15 @@ function AppInner() {
         try {
           const res = await fetch("/api/sessionStart");
           const data = await res.json();
-          if (data.onboarding) {
-            const onboardingMsg = onboardingGreetings[Math.floor(Math.random() * onboardingGreetings.length)];
-            setChatLog([{ role: "bot", text: onboardingMsg }]);
-            setAwaitingName(true);
-          } else {
-            setDailyProfile(data.dailyProfile);
-            setCoreProfile(data.coreProfile);
-            extractFacts(data.dailyProfile);
-            localStorage.setItem("ili-daily", data.dailyProfile);
-            localStorage.setItem("ili-core", data.coreProfile);
-            localStorage.setItem("ili-memory-date", today);
-            setLoadedDate(today);
-            const intro = buildFriendlyIntro(data.coreProfile, data.dailyProfile);
-            setChatLog([{ role: "bot", text: intro }]);
-          }
+          setDailyProfile(data.dailyProfile);
+          setCoreProfile(data.coreProfile);
+          extractFacts(data.dailyProfile);
+          localStorage.setItem("ili-daily", data.dailyProfile);
+          localStorage.setItem("ili-core", data.coreProfile);
+          localStorage.setItem("ili-memory-date", today);
+          setLoadedDate(today);
+          const intro = buildFriendlyIntro(data.coreProfile, data.dailyProfile);
+          setChatLog([{ role: "bot", text: intro }]);
         } catch {
           setChatLog([{ role: "bot", text: "Memory load failed—starting fresh." }]);
         }
@@ -96,32 +79,6 @@ function AppInner() {
 
     initMemory();
   }, []);
-
-  // --- Name extraction using GPT ---
-  async function extractNameFromInput(inputText) {
-    // NOTE: This is for demo/dev only! Use a secure backend API in production!
-    const prompt = `
-Extract only the user's preferred name from this message.
-Example: "Call me Yuichi" → "Yuichi", "You can call me Anna" → "Anna", "Yuichi" → "Yuichi".
-If no clear name, just return the input as is.
-Input: ${inputText}
-Name:`;
-    const res = await fetch("https://api.openai.com/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${process.env.OPENAI_API_KEY}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        model: "gpt-3.5-turbo",
-        messages: [{ role: "user", content: prompt }],
-        temperature: 0,
-        max_tokens: 16,
-      }),
-    });
-    const data = await res.json();
-    return data?.choices?.[0]?.message?.content?.trim() || inputText;
-  }
 
   // --- Gradual bot reply ---
   const revealReply = (text) => {
@@ -146,70 +103,6 @@ Name:`;
     e.preventDefault();
     if (!input.trim()) return;
 
-    // Step 1: User is answering onboarding name
-    if (awaitingName) {
-      const userMsg = { role: "user", text: input.trim() };
-      const extractedName = await extractNameFromInput(input.trim());
-      setUserName(extractedName);
-      const newLog = [
-        ...chatLog,
-        userMsg,
-        { role: "bot", text: `Hi, ${extractedName}! How are you feeling today?` }
-      ];
-      setChatLog(newLog);
-
-      setAwaitingName(false);
-      setAwaitingMood(true);
-      setInput("");
-      return;
-    }
-
-    // Step 2: User is answering mood
-    if (awaitingMood) {
-      const moodMsg = { role: "user", text: input.trim() };
-      const fullLog = [...chatLog, moodMsg];
-      setChatLog(fullLog);
-
-      // Compose summary (save both name and mood)
-      const summary = `Name: ${userName}
-Likes:
-Dislikes:
-Typical Mood/Emotion: ${input.trim()}
-Current Mood/Emotion: ${input.trim()}
-Recent Highlights (bullet points):
-Aspirations/Concerns:
-Favorite Topics:
-Important Reflections (bullet points):`;
-
-      // Save as first daily_profile and build memory
-      await fetch("/api/memory", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          chatLog: fullLog,
-          summary,
-          updateProfile: true
-        }),
-      });
-
-      setAwaitingMood(false);
-      setInput("");
-      window.location.reload();
-      return;
-    }
-
-    // --- Existing daily_profile: normal chat send ---
-    if (loadedDate !== today) {
-      await fetch("/api/memory", {
-        method:  "POST",
-        headers: { "Content-Type": "application/json" },
-        body:    JSON.stringify({ chatLog, updateProfile: true }),
-      });
-      localStorage.removeItem("ili-memory-date");
-      window.location.reload();
-      return;
-    }
-
     // Normal send
     const upd = [...chatLog, { role: "user", text: input }];
     setChatLog(upd);
@@ -226,6 +119,15 @@ Important Reflections (bullet points):`;
       setPending(false);
     }
     setInput("");
+
+    // Save daily on each message, or add AutoSaveOnClose to handle tab close
+    await fetch("/api/memory", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        summary: upd.map(m => `${m.role === "user" ? "User" : "ILI"}: ${m.text}`).join("\n"),
+      }),
+    });
   };
 
   return (
