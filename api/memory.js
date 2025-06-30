@@ -5,7 +5,7 @@ import {
   summarizeLongTermProfile,
   summarizeCoreProfile,
   saveProfile,
-} from "../src/utils/memory.js";
+} from "../src/utils/memoryUtils.js"; // << updated import!
 
 export default async function handler(req, res) {
   if (req.method !== "POST") {
@@ -27,24 +27,21 @@ export default async function handler(req, res) {
     }
 
     if (!content) {
-      // Enhanced error: let frontend know what's missing
       return res.status(400).json({
         error:
           "No valid memory content provided: please include 'summary', 'text', or a non-empty chatLog.",
       });
     }
 
-    // Save daily profile (content always validated above)
+    // Save daily profile
     await saveProfile(content, "daily_profile", { date: today });
 
     let coreSummary = null;
     if (updateProfile) {
-      // Get last 7 daily profiles for long_term
       const last7 = await getProfile("daily_profile", 7);
       const longText = await summarizeLongTermProfile(last7);
       await saveProfile(longText, "long_term_profile", { date: today });
 
-      // Get previous core, summarize with new long term
       const prevCoreArr = await getProfile("core_profile", 1);
       const prevCore = prevCoreArr[0] || "";
       coreSummary = await summarizeCoreProfile(longText, prevCore);
