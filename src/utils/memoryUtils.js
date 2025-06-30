@@ -5,7 +5,8 @@ const DIFY_API_URL    = process.env.DIFY_API_URL || "https://api.dify.ai/v1";
 const DIFY_DATASET_ID = process.env.DIFY_DATASET_ID;
 const OPENAI_API_KEY  = process.env.OPENAI_API_KEY;
 
-const DEFAULT_PROFILES = {
+// ---- EXPORT DEFAULT PROFILES AT THE TOP ----
+export const DEFAULT_PROFILES = {
   core_profile: `
 Name: unknown
 Preferred tone: unknown
@@ -35,6 +36,7 @@ Aspirations/Concerns: unknown
 Important Reflections (bullet points): unknown
 `.trim()
 };
+// -------------------------------------------
 
 function getHeaders() {
   return {
