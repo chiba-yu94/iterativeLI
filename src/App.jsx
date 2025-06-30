@@ -120,13 +120,11 @@ function AppInner() {
     }
     setInput("");
 
-    // Save daily on each message, or add AutoSaveOnClose to handle tab close
+    // Save the full chat log on each message (or use AutoSaveOnClose)
     await fetch("/api/memory", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        summary: upd.map(m => `${m.role === "user" ? "User" : "ILI"}: ${m.text}`).join("\n"),
-      }),
+      body: JSON.stringify({ chatLog: upd }),
     });
   };
 
