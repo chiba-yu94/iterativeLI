@@ -40,35 +40,26 @@ function AppInner() {
   const safeChatLog = Array.isArray(chatLog) ? chatLog : [];
   const [input, setInput] = useState("");
   const [pending, setPending] = useState(false);
-  const today = new Date().toISOString().slice(0, 10);
-  const [loadedDate, setLoadedDate] = useState(localStorage.getItem("ili-memory-date"));
 
   useEffect(() => {
     async function initMemory() {
-      if (loadedDate === today) {
-        const daily = localStorage.getItem("ili-daily") || "";
-        const core  = localStorage.getItem("ili-core")  || "";
-        setDailyProfile(daily);
-        setCoreProfile(core);
-        extractFacts(daily);
-        const intro = buildFriendlyIntro(core, daily);
+      try {
+        // 🚦 Always fetch from API (Dify) on every load!
+        const res = await fetch("/api/sessionStart");
+        const data = await res.json();
+        setDailyProfile(data.dailyProfile);
+        setCoreProfile(data.coreProfile);
+        extractFacts(data.dailyProfile);
+
+        // (Optional) Cache to localStorage for performance/fallback
+        localStorage.setItem("ili-daily", data.dailyProfile);
+        localStorage.setItem("ili-core", data.coreProfile);
+        localStorage.setItem("ili-memory-date", new Date().toISOString().slice(0, 10));
+
+        const intro = buildFriendlyIntro(data.coreProfile, data.dailyProfile);
         setChatLog([{ role: "bot", text: intro }]);
-      } else {
-        try {
-          const res = await fetch("/api/sessionStart");
-          const data = await res.json();
-          setDailyProfile(data.dailyProfile);
-          setCoreProfile(data.coreProfile);
-          extractFacts(data.dailyProfile);
-          localStorage.setItem("ili-daily", data.dailyProfile);
-          localStorage.setItem("ili-core", data.coreProfile);
-          localStorage.setItem("ili-memory-date", today);
-          setLoadedDate(today);
-          const intro = buildFriendlyIntro(data.coreProfile, data.dailyProfile);
-          setChatLog([{ role: "bot", text: intro }]);
-        } catch {
-          setChatLog([{ role: "bot", text: "Memory load failed—starting fresh." }]);
-        }
+      } catch {
+        setChatLog([{ role: "bot", text: "Memory load failed—starting fresh." }]);
       }
     }
 
@@ -120,7 +111,7 @@ function AppInner() {
     }
     setInput("");
 
-    // Save the full chat log on each message (or use AutoSaveOnClose)
+    // Save the full chat log on each message (or via AutoSaveOnClose)
     await fetch("/api/memory", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
