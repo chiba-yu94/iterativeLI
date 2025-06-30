@@ -88,6 +88,44 @@ export async function getProfile(type = "daily_profile", limit = 1) {
   return profiles;
 }
 
+// Summarize chat log into daily profile fields (structured summary)
+export async function summarizeAsProfile(chatLog) {
+  const prompt = `
+You are I.L.I., a gentle digital companion.
+Summarize the following conversation into a daily user profile.
+For each field, if not clearly mentioned, write "unknown".
+
+Conversation:
+${JSON.stringify(chatLog)}
+
+Format:
+Name:
+Likes:
+Dislikes:
+Typical Mood/Emotion:
+Current Mood/Emotion:
+Recent Highlights (bullet points):
+Aspirations/Concerns:
+Favorite Topics:
+Important Reflections (bullet points):
+  `;
+  const res = await fetch("https://api.openai.com/v1/chat/completions", {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${OPENAI_API_KEY}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      model: "gpt-3.5-turbo",
+      messages: [{ role: "user", content: prompt }],
+      temperature: 0.6,
+      max_tokens: 512,
+    }),
+  });
+  const j = await res.json();
+  return j.choices[0].message.content.trim();
+}
+
 export async function summarizeFuse(primary, secondary, promptLabel = "Fuse and summarize these profiles:") {
   const prompt = `
 ${promptLabel}
