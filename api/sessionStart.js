@@ -1,27 +1,8 @@
 // api/sessionStart.js
-
-/*
-  /api/sessionStart
-
-  - Fetches up to 14 latest daily_profile docs from Dify memory.
-  - If no daily_profile exists:
-      - Returns default profiles (all "unknown" fields), no onboarding.
-  - If daily profiles exist:
-      - Fetches most recent long_term_profile and core_profile.
-      - If either is missing, generates them:
-          - long_term_profile: summarizes last 7 daily profiles.
-          - core_profile: fuses long_term_profile and previous core.
-      - Saves new profiles back to Dify.
-  - Returns all profiles as JSON for frontend use.
-  - Local storage is NOT used in this file; only on the frontend.
-*/
-
-
 import {
   getProfile,
-  summarizeLongTermProfile,
-  summarizeCoreProfile,
   saveProfile,
+  summarizeFuse,
   DEFAULT_PROFILES
 } from "../src/utils/memoryUtils.js";
 
@@ -31,42 +12,34 @@ export default async function handler(req, res) {
   }
 
   try {
-    const today = new Date().toISOString().slice(0,10);
+    const today = new Date().toISOString().slice(0, 10);
 
-    let rawDaily = await getProfile("daily_profile", 14);
-    const dailyArr = rawDaily.filter(entry => {
-      if (typeof entry === "string") return entry.trim().length > 0;
-      if (entry && entry.name && entry.name.startsWith("daily_profile")) return true;
-      return false;
-    });
+    // 1. Fetch latest daily profile (just 1)
+    let [latestDaily = DEFAULT_PROFILES.daily_profile] = await getProfile("daily_profile", 1);
 
-    // NEW: If empty, return defaults
-    if (!dailyArr || dailyArr.length === 0) {
-      return res.status(200).json({
-        onboarding: false,
-        dailyProfile: DEFAULT_PROFILES.daily_profile,
-        longProfile: DEFAULT_PROFILES.long_term_profile,
-        coreProfile: DEFAULT_PROFILES.core_profile
-      });
-    }
+    // 2. Fetch long-term and core (1 each)
+    let [longTerm = DEFAULT_PROFILES.long_term_profile] = await getProfile("long_term_profile", 1);
+    let [core = DEFAULT_PROFILES.core_profile] = await getProfile("core_profile", 1);
 
-    let longArr = await getProfile("long_term_profile", 1);
-    let coreArr = await getProfile("core_profile", 1);
-    let longProfile = longArr[0] || "";
-    let coreProfile = coreArr[0] || "";
+    // 3. If long/core are default, fuse to create them
+    let didFuse = false;
+    if (longTerm === DEFAULT_PROFILES.long_term_profile || core === DEFAULT_PROFILES.core_profile) {
+      // a) Fuse today's daily and previous long-term to make new long-term
+      longTerm = await summarizeFuse(latestDaily, longTerm, "Fuse daily memory and previous long-term memory.");
+      await saveProfile(longTerm, "long_term_profile", { date: today });
 
-    if (!longProfile || !coreProfile) {
-      longProfile = await summarizeLongTermProfile(dailyArr);
-      await saveProfile(longProfile, "long_term_profile", { date: today });
-      coreProfile = await summarizeCoreProfile([longProfile]);
-      await saveProfile(coreProfile, "core_profile", { date: today });
+      // b) Fuse new long-term and previous core to make new core
+      core = await summarizeFuse(longTerm, core, "Fuse long-term and previous core memory.");
+      await saveProfile(core, "core_profile", { date: today });
+      didFuse = true;
     }
 
     res.status(200).json({
       onboarding: false,
-      dailyProfile: dailyArr[0], // Most recent daily
-      longProfile,
-      coreProfile,
+      dailyProfile: latestDaily,
+      longProfile: longTerm,
+      coreProfile: core,
+      didFuse
     });
   } catch (err) {
     console.error("[api/sessionStart] error:", err);
