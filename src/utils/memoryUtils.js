@@ -1,19 +1,16 @@
 // src/utils/memoryUtils.js
 
-const DIFY_API_KEY    = process.env.DIFY_API_KEY;
-const DIFY_API_URL    = process.env.DIFY_API_URL || "https://api.dify.ai/v1";
-const DIFY_DATASET_ID = process.env.DIFY_DATASET_ID;
-const OPENAI_API_KEY  = process.env.OPENAI_API_KEY;
-
-// ---- EXPORT DEFAULT PROFILES AT THE TOP ----
 export const DEFAULT_PROFILES = {
-  core_profile: `
+  daily_profile: `
 Name: unknown
-Preferred tone: unknown
-Known interests: unknown
-Important reflections: unknown
+Typical Mood/Emotion: unknown
+Current Mood/Emotion: unknown
+Likes: unknown
+Dislikes: unknown
+Recent Highlights (bullet points): unknown
+Aspirations/Concerns: unknown
+Important Reflections (bullet points): unknown
 `.trim(),
-
   long_term_profile: `
 Name: unknown
 Typical Mood/Emotion: unknown
@@ -24,19 +21,18 @@ Aspirations/Concerns: unknown
 Favorite Topics: unknown
 Important Reflections (bullet points): unknown
 `.trim(),
-
-  daily_profile: `
+  core_profile: `
 Name: unknown
-Typical Mood/Emotion: unknown
-Current Mood/Emotion: unknown
-Likes: unknown
-Dislikes: unknown
-Recent Highlights (bullet points): unknown
-Aspirations/Concerns: unknown
-Important Reflections (bullet points): unknown
+Preferred tone: unknown
+Known interests: unknown
+Important reflections: unknown
 `.trim()
 };
-// -------------------------------------------
+
+const DIFY_API_KEY    = process.env.DIFY_API_KEY;
+const DIFY_API_URL    = process.env.DIFY_API_URL || "https://api.dify.ai/v1";
+const DIFY_DATASET_ID = process.env.DIFY_DATASET_ID;
+const OPENAI_API_KEY  = process.env.OPENAI_API_KEY;
 
 function getHeaders() {
   return {
@@ -92,27 +88,20 @@ export async function getProfile(type = "daily_profile", limit = 1) {
   return profiles;
 }
 
-export async function summarizeAsProfile(chatLog, prev = "") {
+export async function summarizeFuse(primary, secondary, promptLabel = "Fuse and summarize these profiles:") {
   const prompt = `
-You are I.L.I., a gentle digital companion.
-Create a new daily user profile based on today's conversation.
+${promptLabel}
+===
+PRIMARY:
+${primary || "(unknown)"}
 
-Profile so far:
-${prev || "(empty)"}
+SECONDARY:
+${secondary || "(unknown)"}
 
-Conversation:
-${JSON.stringify(chatLog)}
+Summarize them into the structure below.
+If any field is missing, write "unknown". Do not invent data.
 
-Format:
-Name:
-Likes:
-Dislikes:
-Typical Mood/Emotion:
-Current Mood/Emotion:
-Recent Highlights (bullet points):
-Aspirations/Concerns:
-Favorite Topics:
-Important Reflections (bullet points):
+[use previous profile's structure here if you want fields to match]
   `;
   const res = await fetch("https://api.openai.com/v1/chat/completions", {
     method: "POST",
@@ -124,92 +113,6 @@ Important Reflections (bullet points):
       model: "gpt-3.5-turbo",
       messages: [{ role: "user", content: prompt }],
       temperature: 0.7,
-      max_tokens: 512,
-    }),
-  });
-  const j = await res.json();
-  return j.choices[0].message.content.trim();
-}
-
-export async function summarizeLongTermProfile(profiles) {
-  if (!profiles || profiles.length === 0) {
-    return DEFAULT_PROFILES.long_term_profile;
-  }
-  if (profiles.length === 1) {
-    return profiles[0];
-  }
-  const prompt = `
-You are I.L.I.
-Here are up to 7 daily user profiles.
-
-Please summarize their themes, recurring emotions, patterns, and reflections.
-If any field is missing, leave it as "unknown". Do not invent new names or details.
-
-Preserve structure and return in this format:
-
-Name:
-Likes:
-Dislikes:
-Typical Mood/Emotion:
-Recent Highlights (bullet points):
-Aspirations/Concerns:
-Favorite Topics:
-Important Reflections (bullet points):
-
-${profiles.join("\n\n---\n\n")}
-  `;
-  const res = await fetch("https://api.openai.com/v1/chat/completions", {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${OPENAI_API_KEY}`,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({
-      model: "gpt-3.5-turbo",
-      messages: [{ role: "user", content: prompt }],
-      temperature: 0.7,
-      max_tokens: 1024,
-    }),
-  });
-  const j = await res.json();
-  return j.choices[0].message.content.trim();
-}
-
-export async function summarizeCoreProfile(longProfiles, prevCore = "") {
-  let longText = Array.isArray(longProfiles)
-    ? longProfiles.join("\n\n")
-    : (longProfiles || "");
-  if (!longText || longText.trim().length === 0) {
-    return DEFAULT_PROFILES.core_profile;
-  }
-  const prompt = `
-You are I.L.I.
-The following is the user's long-term memory and/or previous core memory.
-
-${longText}
-${prevCore ? `\n\nPrevious core:\n${prevCore}` : ""}
-
-Please extract only the most essential facts, leaving blank anything not present.
-If unknown, write "unknown". Do not invent data or names.
-
-Format:
-Name:
-Likes:
-Dislikes:
-Typical Mood/Emotion:
-Aspirations/Concerns:
-Important Reflections (bullet points):
-  `;
-  const res = await fetch("https://api.openai.com/v1/chat/completions", {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${OPENAI_API_KEY}`,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({
-      model: "gpt-3.5-turbo",
-      messages: [{ role: "user", content: prompt }],
-      temperature: 0.6,
       max_tokens: 1024,
     }),
   });
