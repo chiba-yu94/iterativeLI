@@ -5,8 +5,29 @@ import SoulPrint from "./SoulPrint";
 import ChatArea from "./ChatArea";
 import AutoSaveOnClose from "./AutoSaveOnClose";
 import MemoryControls from "./MemoryControls";
-import { buildIntroFromMemory } from "./utils/promptBuilder";
 import "./App.css";
+
+// Helper: parse facts from profile text
+function parseFacts(profileText) {
+  const facts = {};
+  (profileText || "").split("\n").forEach(line => {
+    const [k, ...rest] = line.split(":");
+    if (k && rest.length) facts[k.trim()] = rest.join(":").trim();
+  });
+  return facts;
+}
+
+// Friendly intro builder (replace buildIntroFromMemory import)
+function buildFriendlyIntro(core, daily) {
+  const facts = parseFacts(core + "\n" + daily);
+  const name = !facts.Name || facts.Name === "unknown" ? "friend" : facts.Name;
+  const highlights = facts["Recent Highlights (bullet points)"];
+  if (name === "friend" && (!highlights || highlights === "unknown")) {
+    return `Welcome! I'm I.L.I.—here to help you explore, reflect, and grow. What would you like to talk about today?`;
+  } else {
+    return `Welcome back. Hello again, ${name}. You've been reflecting on things like ${!highlights || highlights === "unknown" ? "many topics" : highlights}. Would you like to continue where we left off, or explore something new today?`;
+  }
+}
 
 const onboardingGreetings = [
   "Welcome! How should I call you?",
@@ -41,7 +62,7 @@ function AppInner() {
         setDailyProfile(daily);
         setCoreProfile(core);
         extractFacts(daily);
-        const intro = buildIntroFromMemory(core, daily);
+        const intro = buildFriendlyIntro(core, daily);
         setChatLog([{ role: "bot", text: intro }]);
       } else {
         try {
@@ -59,7 +80,7 @@ function AppInner() {
             localStorage.setItem("ili-core", data.coreProfile);
             localStorage.setItem("ili-memory-date", today);
             setLoadedDate(today);
-            const intro = buildIntroFromMemory(data.coreProfile, data.dailyProfile);
+            const intro = buildFriendlyIntro(data.coreProfile, data.dailyProfile);
             setChatLog([{ role: "bot", text: intro }]);
           }
         } catch {
@@ -69,11 +90,7 @@ function AppInner() {
     }
 
     function extractFacts(dailyText) {
-      const facts = {};
-      dailyText.split("\n").forEach(line => {
-        const [k, ...rest] = line.split(":");
-        if (k && rest.length) facts[k.trim()] = rest.join(":").trim();
-      });
+      const facts = parseFacts(dailyText);
       setUserFacts(facts);
     }
 
