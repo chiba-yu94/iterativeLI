@@ -1,11 +1,9 @@
 // api/memory.js
 import {
-  summarizeAsProfile,
-  getProfile,
-  summarizeLongTermProfile,
-  summarizeCoreProfile,
   saveProfile,
-} from "../src/utils/memoryUtils.js"; // << updated import!
+  getProfile,
+  DEFAULT_PROFILES
+} from "../src/utils/memoryUtils.js";
 
 export default async function handler(req, res) {
   if (req.method !== "POST") {
@@ -14,41 +12,22 @@ export default async function handler(req, res) {
 
   try {
     const today = new Date().toISOString().slice(0, 10);
-    const { chatLog, text, summary, updateProfile = false } = req.body;
+    const { summary } = req.body;
 
-    // Accept either 'summary', 'text', or fallback to summarized chatLog
-    let content = "";
-    if (typeof summary === "string" && summary.trim()) {
-      content = summary.trim();
-    } else if (typeof text === "string" && text.trim()) {
-      content = text.trim();
-    } else if (Array.isArray(chatLog) && chatLog.length > 0) {
-      content = (await summarizeAsProfile(chatLog)).trim();
+    // 1. Save daily-profile
+    await saveProfile(summary, "daily_profile", { date: today });
+
+    // 2. Ensure long/core profiles exist as default if missing
+    let [longTerm] = await getProfile("long_term_profile", 1);
+    if (!longTerm || longTerm.trim() === "") {
+      await saveProfile(DEFAULT_PROFILES.long_term_profile, "long_term_profile", { date: today });
+    }
+    let [core] = await getProfile("core_profile", 1);
+    if (!core || core.trim() === "") {
+      await saveProfile(DEFAULT_PROFILES.core_profile, "core_profile", { date: today });
     }
 
-    if (!content) {
-      return res.status(400).json({
-        error:
-          "No valid memory content provided: please include 'summary', 'text', or a non-empty chatLog.",
-      });
-    }
-
-    // Save daily profile
-    await saveProfile(content, "daily_profile", { date: today });
-
-    let coreSummary = null;
-    if (updateProfile) {
-      const last7 = await getProfile("daily_profile", 7);
-      const longText = await summarizeLongTermProfile(last7);
-      await saveProfile(longText, "long_term_profile", { date: today });
-
-      const prevCoreArr = await getProfile("core_profile", 1);
-      const prevCore = prevCoreArr[0] || "";
-      coreSummary = await summarizeCoreProfile(longText, prevCore);
-      await saveProfile(coreSummary, "core_profile", { date: today });
-    }
-
-    res.status(200).json({ ok: true, coreSummary });
+    res.status(200).json({ ok: true });
   } catch (err) {
     console.error("[api/memory] error:", err);
     res.status(500).json({ error: err.message });
