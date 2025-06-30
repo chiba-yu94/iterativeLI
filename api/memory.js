@@ -3,7 +3,7 @@ import {
   saveProfile,
   getProfile,
   DEFAULT_PROFILES,
-  summarizeAsProfile   // <--- add this import!
+  summarizeAsProfile
 } from "../src/utils/memoryUtils.js";
 
 export default async function handler(req, res) {
@@ -13,12 +13,12 @@ export default async function handler(req, res) {
 
   try {
     const today = new Date().toISOString().slice(0, 10);
-    const { chatLog, summary } = req.body;
+    const { chatLog } = req.body;
 
-    let dailySummary = summary;
+    let dailySummary = "";
 
-    // If no summary provided, or if only chatLog provided, always summarize chatLog to daily summary
-    if ((!summary || !summary.trim()) && Array.isArray(chatLog) && chatLog.length > 0) {
+    // Always summarize if chatLog is present and non-empty
+    if (Array.isArray(chatLog) && chatLog.length > 0) {
       dailySummary = await summarizeAsProfile(chatLog);
     }
 
@@ -27,7 +27,7 @@ export default async function handler(req, res) {
       dailySummary = DEFAULT_PROFILES.daily_profile;
     }
 
-    // 1. Save daily-profile (structured summary)
+    // 1. Save daily-profile (structured summary only!)
     await saveProfile(dailySummary, "daily_profile", { date: today });
 
     // 2. Ensure long/core profiles exist as default if missing
