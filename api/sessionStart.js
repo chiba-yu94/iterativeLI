@@ -1,10 +1,28 @@
 // api/sessionStart.js
+
+/*
+  /api/sessionStart
+
+  - Fetches up to 14 latest daily_profile docs from Dify memory.
+  - If no daily_profile exists:
+      - Returns default profiles (all "unknown" fields), no onboarding.
+  - If daily profiles exist:
+      - Fetches most recent long_term_profile and core_profile.
+      - If either is missing, generates them:
+          - long_term_profile: summarizes last 7 daily profiles.
+          - core_profile: fuses long_term_profile and previous core.
+      - Saves new profiles back to Dify.
+  - Returns all profiles as JSON for frontend use.
+  - Local storage is NOT used in this file; only on the frontend.
+*/
+
+
 import {
   getProfile,
   summarizeLongTermProfile,
   summarizeCoreProfile,
   saveProfile,
-  DEFAULT_PROFILES // Make sure this is exported in your util!
+  DEFAULT_PROFILES
 } from "../src/utils/memoryUtils.js";
 
 export default async function handler(req, res) {
