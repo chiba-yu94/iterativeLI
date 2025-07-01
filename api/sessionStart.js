@@ -4,7 +4,7 @@ import {
   summarizeFuse,
   saveProfile,
   DEFAULT_PROFILES
-} from "../src/utils/memoryUtils.js";
+} from "../src/utils/memoryUtils.server.js";
 
 // Optionally: get userId from req/session. For now, use "default"
 const userId = "default";
