@@ -55,6 +55,7 @@ Aspirations/Concerns:
 Favorite Topics:
 Important Reflections (bullet points):
   `;
+
   const res = await fetch("https://api.openai.com/v1/chat/completions", {
     method: "POST",
     headers: {
@@ -68,7 +69,19 @@ Important Reflections (bullet points):
       max_tokens: 512,
     }),
   });
+
   const j = await res.json();
+
+  if (
+    !j.choices ||
+    !Array.isArray(j.choices) ||
+    !j.choices[0] ||
+    !j.choices[0].message ||
+    !j.choices[0].message.content
+  ) {
+    return DEFAULT_PROFILES.daily_profile;
+  }
+
   return j.choices[0].message.content.trim();
 }
 
