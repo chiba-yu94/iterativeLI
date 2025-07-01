@@ -1,9 +1,9 @@
+// /api/chat.js
+
 import { buildIntroFromMemory } from '../src/utils/promptBuilder.js';
+import { getProfile, saveProfile } from '../src/utils/memoryUtils.js'; // <-- Firestore version
 
 const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
-const DIFY_API_KEY = process.env.DIFY_API_KEY;
-const DIFY_API_URL = process.env.DIFY_API_URL || "https://api.dify.ai/v1";
-const DIFY_DATASET_ID = process.env.DIFY_DATASET_ID;
 
 export default async function handler(req, res) {
   if (req.method !== "POST") {
@@ -17,35 +17,21 @@ export default async function handler(req, res) {
     return;
   }
 
-  async function getProfile(profileType = "core_profile", limit = 1) {
-    const url = new URL(`${DIFY_API_URL}/datasets/${DIFY_DATASET_ID}/documents`);
-    url.searchParams.append("metadata.type", profileType);
-    url.searchParams.append("order_by", "-created_at");
-    url.searchParams.append("limit", limit.toString());
-
-    const headers = {
-      Authorization: `Bearer ${DIFY_API_KEY}`,
-      "Content-Type": "application/json",
-    };
-
-    const r = await fetch(url.toString(), { headers });
-    const raw = await r.text();
-    if (!r.ok) throw new Error(`getProfile ${profileType} failed: ${r.status} - ${raw}`);
-    const data = JSON.parse(raw);
-    return data?.data?.map((d) => d.text) || [];
-  }
-
   try {
     const today = new Date().toISOString().slice(0, 10);
     const cachedDate = req.cookies["ili-last-memory-date"];
     let introPrompt = "";
 
+    // Fetch memory profiles from Firestore
+    let core = "", daily = "";
     if (cachedDate !== today) {
       const coreArr = await getProfile("core_profile");
-      const longArr = await getProfile("daily_profile");
-      const core = coreArr?.[0] || "";
-      const long = longArr?.[0] || "";
-      introPrompt = buildIntroFromMemory(core, long);
+      const dailyArr = await getProfile("daily_profile");
+      core = coreArr?.[0] || "";
+      daily = dailyArr?.[0] || "";
+      introPrompt = buildIntroFromMemory(core, daily);
+
+      // Set cookie so we don't repeat on every request
       res.setHeader("Set-Cookie", [
         `ili-last-memory-date=${today}; Path=/; Max-Age=86400; SameSite=Lax`,
       ]);
@@ -66,6 +52,7 @@ export default async function handler(req, res) {
       },
     ];
 
+    // OpenAI chat completion
     const reply = await fetch("https://api.openai.com/v1/chat/completions", {
       method: "POST",
       headers: {
@@ -83,7 +70,11 @@ export default async function handler(req, res) {
     const data = await reply.json();
     const output = data.choices?.[0]?.message?.content?.trim();
 
+    // (Optional) Save the latest chat log or profiles to Firestore here
+    // For example: await saveProfile(...)
+
     res.status(200).json({ reply: output || "(no reply generated)" });
+
   } catch (err) {
     console.error("Chat error:", err.message);
     res.status(500).json({ error: err.message });
