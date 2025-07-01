@@ -124,21 +124,31 @@ Important Reflections (bullet points):
   return j.choices[0].message.content.trim();
 }
 
-// Fuse and summarize any two profile texts
+// Fuse and summarize any two profile texts into a single merged profile (no PRIMARY/SECONDARY in result)
 export async function summarizeFuse(primary, secondary, promptLabel = "Fuse and summarize these profiles:") {
   const prompt = `
 ${promptLabel}
-===
-PRIMARY:
+
+Merge the two user memory profiles below into a single, up-to-date summary in the structure provided. 
+- Output ONLY the merged summary. Do NOT include both input blocks or any "Profile 1" or "Profile 2" sections.
+- If any field is missing, write "unknown".
+
+Format:
+Name:
+Likes:
+Dislikes:
+Typical Mood/Emotion:
+Current Mood/Emotion:
+Recent Highlights (bullet points):
+Aspirations/Concerns:
+Favorite Topics:
+Important Reflections (bullet points):
+
+Profile 1:
 ${primary || "(unknown)"}
 
-SECONDARY:
+Profile 2:
 ${secondary || "(unknown)"}
-
-Summarize them into the structure below.
-If any field is missing, write "unknown". Do not invent data.
-
-[use previous profile's structure here if you want fields to match]
   `;
   const res = await fetch("https://api.openai.com/v1/chat/completions", {
     method: "POST",
