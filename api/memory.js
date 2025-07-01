@@ -1,11 +1,12 @@
 // api/memory.js
+// CORRECT for API!
 import {
   saveProfile,
   getProfile,
   DEFAULT_PROFILES,
   summarizeAsProfile,
   summarizeFuse
-} from "../src/utils/memoryUtils.js";
+} from "../src/utils/memoryUtils.server.js";
 
 // Use real userId from Auth in the future; for now, default is fine
 const RECENT_LOG_LIMIT = 10;
