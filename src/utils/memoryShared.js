@@ -31,6 +31,11 @@ Important reflections: unknown
 
 // Summarization helper for OpenAI (no Firebase used here)
 export async function summarizeAsProfile(chatLog, apiKey) {
+  // Defensive: Return default if chatLog is missing, not an array, or empty
+  if (!Array.isArray(chatLog) || chatLog.length === 0) {
+    return DEFAULT_PROFILES.daily_profile;
+  }
+
   const prompt = `
 You are I.L.I., a gentle digital companion.
 Summarize the following conversation into a daily user profile.
