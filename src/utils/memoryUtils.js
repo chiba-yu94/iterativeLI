@@ -41,12 +41,9 @@ function getHeaders() {
   };
 }
 
-// Always overwrite single file per type: "daily_profile", "long_term_profile", or "core_profile"
-export async function saveProfile(content, type = "daily_profile", metadata = {}) {
-  if (!content || typeof content !== "string" || !content.trim()) {
-    throw new Error("Cannot saveProfile: 'summary' or 'text' is missing or empty");
-  }
-  const name = type; // <-- only one per type, no date suffix
+// Save daily profile AND recent_log together (as one file with metadata)
+export async function saveDailyProfileWithLog(profileText, chatLogArr = []) {
+  const name = "daily_profile";
   const res = await fetch(
     `${DIFY_API_URL}/datasets/${DIFY_DATASET_ID}/document/create_by_text`,
     {
@@ -54,10 +51,10 @@ export async function saveProfile(content, type = "daily_profile", metadata = {}
       headers: getHeaders(),
       body: JSON.stringify({
         name,
-        text: content,
+        text: profileText,
         indexing_technique: "economy",
         process_rule: { mode: "automatic" },
-        metadata: { ...metadata, type },
+        metadata: { type: "daily_profile", recent_log: JSON.stringify(chatLogArr) },
       }),
     }
   );
@@ -68,7 +65,26 @@ export async function saveProfile(content, type = "daily_profile", metadata = {}
   return res.json();
 }
 
-// Fetches the one latest file of a given type (or returns default if missing)
+// Fetches daily_profile and recent_log from Dify, always falls back to defaults if missing
+export async function getDailyProfileWithLog() {
+  const url = new URL(`${DIFY_API_URL}/datasets/${DIFY_DATASET_ID}/documents`);
+  url.searchParams.append("metadata.type", "daily_profile");
+  url.searchParams.append("order_by", "-created_at");
+  url.searchParams.append("limit", "1");
+
+  const res = await fetch(url.toString(), { headers: getHeaders(), cache: "no-store" });
+  const text = await res.text();
+  if (!res.ok) throw new Error(`getProfile daily_profile failed: ${res.status} – ${text}`);
+  const data = JSON.parse(text);
+  if (!data.data.length) return { text: DEFAULT_PROFILES.daily_profile, recent_log: [] };
+
+  const doc = data.data[0];
+  let logArr = [];
+  try { logArr = JSON.parse(doc.metadata?.recent_log || "[]"); } catch { logArr = []; }
+  return { text: doc.text || DEFAULT_PROFILES.daily_profile, recent_log: logArr };
+}
+
+// Fetches latest long/core, always falls back to defaults if missing
 export async function getProfile(type = "daily_profile", limit = 1) {
   const url = new URL(`${DIFY_API_URL}/datasets/${DIFY_DATASET_ID}/documents`);
   url.searchParams.append("metadata.type", type);
@@ -124,12 +140,12 @@ Important Reflections (bullet points):
   return j.choices[0].message.content.trim();
 }
 
-// Fuse and summarize any two profile texts into a single merged profile (no PRIMARY/SECONDARY in result)
+// Fuse and summarize any two profile texts into a single merged profile (no duplicate blocks)
 export async function summarizeFuse(primary, secondary, promptLabel = "Fuse and summarize these profiles:") {
   const prompt = `
 ${promptLabel}
 
-Merge the two user memory profiles below into a single, up-to-date summary in the structure provided. 
+Merge the two user memory profiles below into a single, up-to-date summary in the structure provided.
 - Output ONLY the merged summary. Do NOT include both input blocks or any "Profile 1" or "Profile 2" sections.
 - If any field is missing, write "unknown".
 
