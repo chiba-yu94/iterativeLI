@@ -7,7 +7,7 @@ import AutoSaveOnClose from "./AutoSaveOnClose";
 import MemoryControls from "./MemoryControls";
 import "./App.css";
 
-const ROLLING_CHAT_LIMIT = 10; // How many turns to keep in recent_log
+const ROLLING_CHAT_LIMIT = 10;
 
 function parseFacts(profileText) {
   const facts = {};
@@ -76,10 +76,10 @@ function AppInner() {
     const step = () => {
       if (i < words.length) {
         out += (i ? " " : "") + words[i++];
-        setChatLog(cl => [...cl.filter(m=>m.role!=="typing"), { role: "typing", text: out }]);
+        setChatLog(cl => [...cl.filter(m => m.role !== "typing"), { role: "typing", text: out }]);
         setTimeout(step, 80);
       } else {
-        setChatLog(cl => [...cl.filter(m=>m.role!=="typing"), { role: "bot", text }]);
+        setChatLog(cl => [...cl.filter(m => m.role !== "typing"), { role: "bot", text }]);
         setPending(false);
       }
     };
@@ -104,7 +104,6 @@ function AppInner() {
         body:    JSON.stringify({
           message: input,
           chatLog: truncatedLog,
-          // Optionally, send dailyProfile/longProfile/coreProfile for advanced prompting
         }),
       });
       const { reply } = await res.json();
@@ -112,11 +111,11 @@ function AppInner() {
       setChatLog(upd);
       setPending(false);
 
-      // Save to Dify: update dailyProfile summary + rolling chat log (recent_log)
+      // Save to Firestore: update dailyProfile summary + rolling chat log (recent_log)
       await fetch("/api/memory", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ chatLog: upd }), // backend handles summary + rolling log
+        body: JSON.stringify({ chatLog: upd }),
       });
     } catch (err) {
       setChatLog(cl => [...cl, { role: "bot", text: "Oops—something went wrong." }]);
