@@ -1,8 +1,8 @@
 // api/sessionStart.js
 import {
   getProfile,
-  saveProfile,
   summarizeFuse,
+  saveProfile,
   DEFAULT_PROFILES
 } from "../src/utils/memoryUtils.js";
 
@@ -14,10 +14,15 @@ export default async function handler(req, res) {
   try {
     const today = new Date().toISOString().slice(0, 10);
 
-    // 1. Fetch current profiles
-    let [dailyProfile = DEFAULT_PROFILES.daily_profile] = await getProfile("daily_profile", 1);
-    let [longProfile = DEFAULT_PROFILES.long_term_profile] = await getProfile("long_term_profile", 1);
-    let [coreProfile = DEFAULT_PROFILES.core_profile] = await getProfile("core_profile", 1);
+    // 1. Always try to fetch existing profiles (or use defaults)
+    let [dailyProfile] = await getProfile("daily_profile", 1);
+    if (!dailyProfile || dailyProfile.trim() === "") dailyProfile = DEFAULT_PROFILES.daily_profile;
+
+    let [longProfile] = await getProfile("long_term_profile", 1);
+    if (!longProfile || longProfile.trim() === "") longProfile = DEFAULT_PROFILES.long_term_profile;
+
+    let [coreProfile] = await getProfile("core_profile", 1);
+    if (!coreProfile || coreProfile.trim() === "") coreProfile = DEFAULT_PROFILES.core_profile;
 
     let didFuse = false;
 
