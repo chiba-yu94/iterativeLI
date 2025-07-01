@@ -41,14 +41,12 @@ function getHeaders() {
   };
 }
 
+// Always overwrite single file per type: "daily_profile", "long_term_profile", or "core_profile"
 export async function saveProfile(content, type = "daily_profile", metadata = {}) {
   if (!content || typeof content !== "string" || !content.trim()) {
     throw new Error("Cannot saveProfile: 'summary' or 'text' is missing or empty");
   }
-  const date = metadata.date || new Date().toISOString().slice(0, 10);
-  const name = (type === "core_profile" || type === "long_term_profile")
-    ? type
-    : `${type}-${date}`;
+  const name = type; // <-- only one per type, no date suffix
   const res = await fetch(
     `${DIFY_API_URL}/datasets/${DIFY_DATASET_ID}/document/create_by_text`,
     {
@@ -59,7 +57,7 @@ export async function saveProfile(content, type = "daily_profile", metadata = {}
         text: content,
         indexing_technique: "economy",
         process_rule: { mode: "automatic" },
-        metadata: { ...metadata, type, date },
+        metadata: { ...metadata, type },
       }),
     }
   );
@@ -70,6 +68,7 @@ export async function saveProfile(content, type = "daily_profile", metadata = {}
   return res.json();
 }
 
+// Fetches the one latest file of a given type (or returns default if missing)
 export async function getProfile(type = "daily_profile", limit = 1) {
   const url = new URL(`${DIFY_API_URL}/datasets/${DIFY_DATASET_ID}/documents`);
   url.searchParams.append("metadata.type", type);
@@ -81,7 +80,6 @@ export async function getProfile(type = "daily_profile", limit = 1) {
   if (!res.ok) throw new Error(`getProfile ${type} failed: ${res.status} – ${text}`);
   const data = JSON.parse(text);
   const profiles = data.data.map((d) => d.text).filter(Boolean);
-  // If no profile found, use default
   if (!profiles.length) {
     return [DEFAULT_PROFILES[type] || ""];
   }
@@ -126,6 +124,7 @@ Important Reflections (bullet points):
   return j.choices[0].message.content.trim();
 }
 
+// Fuse and summarize any two profile texts
 export async function summarizeFuse(primary, secondary, promptLabel = "Fuse and summarize these profiles:") {
   const prompt = `
 ${promptLabel}
