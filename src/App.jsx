@@ -1,13 +1,14 @@
 // src/App.jsx
 import React, { useEffect, useState } from "react";
-import { MemoryProvider, useMemory } from "./MemoryProvider";
+import { MemoryProvider } from "./MemoryProvider";
 import SoulPrint from "./SoulPrint";
 import ChatArea from "./ChatArea";
 import AutoSaveOnClose from "./AutoSaveOnClose";
 import MemoryControls from "./MemoryControls";
 import "./App.css";
 
-// Helper: parse facts from profile text
+const ROLLING_CHAT_LIMIT = 10; // How many turns to keep in recent_log
+
 function parseFacts(profileText) {
   const facts = {};
   (profileText || "").split("\n").forEach(line => {
@@ -17,7 +18,6 @@ function parseFacts(profileText) {
   return facts;
 }
 
-// Friendly intro builder
 function buildFriendlyIntro(core, daily) {
   const facts = parseFacts(core + "\n" + daily);
   const name = !facts.Name || facts.Name === "unknown" ? "friend" : facts.Name;
@@ -30,45 +30,42 @@ function buildFriendlyIntro(core, daily) {
 }
 
 function AppInner() {
-  const mem = useMemory() || {};
-  const chatLog = mem.chatLog ?? [];
-  const setChatLog = mem.setChatLog;
-  const setDailyProfile = mem.setDailyProfile;
-  const setCoreProfile = mem.setCoreProfile;
-  const setUserFacts = mem.setUserFacts;
-
-  const safeChatLog = Array.isArray(chatLog) ? chatLog : [];
+  const [chatLog, setChatLog] = useState([]);
   const [input, setInput] = useState("");
   const [pending, setPending] = useState(false);
+  const [dailyProfile, setDailyProfile] = useState("");
+  const [coreProfile, setCoreProfile] = useState("");
+  const [longProfile, setLongProfile] = useState("");
+  const [loading, setLoading] = useState(true);
 
+  // Fetch everything from the backend on load
   useEffect(() => {
-    async function initMemory() {
+    async function fetchMemory() {
+      setLoading(true);
       try {
-        // 🚦 Always fetch from API (Dify) on every load!
         const res = await fetch("/api/sessionStart");
         const data = await res.json();
-        setDailyProfile(data.dailyProfile);
-        setCoreProfile(data.coreProfile);
-        extractFacts(data.dailyProfile);
+        setDailyProfile(data.dailyProfile || "");
+        setCoreProfile(data.coreProfile || "");
+        setLongProfile(data.longProfile || "");
+        let logArr = [];
+        // Try to parse recent_log field (from dailyProfile metadata or as a separate field)
+        if (data.recentLog && Array.isArray(data.recentLog)) {
+          logArr = data.recentLog;
+        } else if (data.recent_log && Array.isArray(data.recent_log)) {
+          logArr = data.recent_log;
+        }
+        setChatLog(logArr);
 
-        // (Optional) Cache to localStorage for performance/fallback
-        localStorage.setItem("ili-daily", data.dailyProfile);
-        localStorage.setItem("ili-core", data.coreProfile);
-        localStorage.setItem("ili-memory-date", new Date().toISOString().slice(0, 10));
-
+        // Intro on load
         const intro = buildFriendlyIntro(data.coreProfile, data.dailyProfile);
-        setChatLog([{ role: "bot", text: intro }]);
-      } catch {
+        if (!logArr.length) setChatLog([{ role: "bot", text: intro }]);
+      } catch (e) {
         setChatLog([{ role: "bot", text: "Memory load failed—starting fresh." }]);
       }
+      setLoading(false);
     }
-
-    function extractFacts(dailyText) {
-      const facts = parseFacts(dailyText);
-      setUserFacts(facts);
-    }
-
-    initMemory();
+    fetchMemory();
   }, []);
 
   // --- Gradual bot reply ---
@@ -94,30 +91,41 @@ function AppInner() {
     e.preventDefault();
     if (!input.trim()) return;
 
-    // Normal send
-    const upd = [...chatLog, { role: "user", text: input }];
-    setChatLog(upd);
+    // Always keep only last N turns (for rolling recent_log)
+    const newUserTurn = { role: "user", text: input.trim() };
+    const truncatedLog = [...chatLog, newUserTurn].slice(-ROLLING_CHAT_LIMIT);
+    setChatLog(truncatedLog);
+
     try {
+      setPending(true);
       const res = await fetch("/api/chat", {
         method:  "POST",
         headers: { "Content-Type": "application/json" },
-        body:    JSON.stringify({ message: input, chatLog: upd }),
+        body:    JSON.stringify({
+          message: input,
+          chatLog: truncatedLog,
+          // Optionally, send dailyProfile/longProfile/coreProfile for advanced prompting
+        }),
       });
       const { reply } = await res.json();
-      revealReply(reply || "…");
-    } catch {
+      const upd = [...truncatedLog, { role: "bot", text: reply || "…" }].slice(-ROLLING_CHAT_LIMIT);
+      setChatLog(upd);
+      setPending(false);
+
+      // Save to Dify: update dailyProfile summary + rolling chat log (recent_log)
+      await fetch("/api/memory", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ chatLog: upd }), // backend handles summary + rolling log
+      });
+    } catch (err) {
       setChatLog(cl => [...cl, { role: "bot", text: "Oops—something went wrong." }]);
       setPending(false);
     }
     setInput("");
-
-    // Save the full chat log on each message (or via AutoSaveOnClose)
-    await fetch("/api/memory", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ chatLog: upd }),
-    });
   };
+
+  if (loading) return <div>Loading...</div>;
 
   return (
     <>
@@ -125,8 +133,8 @@ function AppInner() {
       <div className="ili-container">
         <SoulPrint breathing={pending} coreGlow={pending} />
         <ChatArea
-          messages={safeChatLog.filter(m => m.role !== "typing")}
-          partialReply={safeChatLog.find(m => m.role === "typing")?.text || ""}
+          messages={chatLog.filter(m => m.role !== "typing")}
+          partialReply={chatLog.find(m => m.role === "typing")?.text || ""}
           pending={pending}
           input={input}
           setInput={setInput}
