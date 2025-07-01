@@ -1,7 +1,7 @@
 // /api/chat.js
 
 import { buildIntroFromMemory } from '../src/utils/promptBuilder.js';
-import { getProfile, saveProfile } from '../src/utils/memoryUtils.js'; // <-- Firestore version
+import { getProfile, saveProfile } from '../src/utils/memoryUtils.server.js';
 
 const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
 
