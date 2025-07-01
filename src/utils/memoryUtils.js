@@ -41,31 +41,37 @@ function getHeaders() {
   };
 }
 
-// Save daily profile AND recent_log together (as one file with metadata)
-export async function saveDailyProfileWithLog(profileText, chatLogArr = []) {
-  const name = "daily_profile";
+// Save/overwrite a profile (one file per type: daily, long, core)
+export async function saveProfile(profileText, type = "daily_profile", metadata = {}) {
+  const name = type;
+  const body = {
+    name,
+    text: profileText,
+    indexing_technique: "economy",
+    process_rule: { mode: "automatic" },
+    metadata: { ...metadata, type }
+  };
   const res = await fetch(
     `${DIFY_API_URL}/datasets/${DIFY_DATASET_ID}/document/create_by_text`,
     {
       method: "POST",
       headers: getHeaders(),
-      body: JSON.stringify({
-        name,
-        text: profileText,
-        indexing_technique: "economy",
-        process_rule: { mode: "automatic" },
-        metadata: { type: "daily_profile", recent_log: JSON.stringify(chatLogArr) },
-      }),
+      body: JSON.stringify(body),
     }
   );
   if (!res.ok) {
-    const body = await res.text();
-    throw new Error(`Dify saveProfile failed: ${res.status} – ${body}`);
+    const errorBody = await res.text();
+    throw new Error(`Dify saveProfile failed: ${res.status} – ${errorBody}`);
   }
   return res.json();
 }
 
-// Fetches daily_profile and recent_log from Dify, always falls back to defaults if missing
+// Save daily profile and attach recent log (for session continuity)
+export async function saveDailyProfileWithLog(profileText, chatLogArr = []) {
+  return saveProfile(profileText, "daily_profile", { recent_log: JSON.stringify(chatLogArr) });
+}
+
+// Fetch daily profile with log (or fallback to default)
 export async function getDailyProfileWithLog() {
   const url = new URL(`${DIFY_API_URL}/datasets/${DIFY_DATASET_ID}/documents`);
   url.searchParams.append("metadata.type", "daily_profile");
@@ -84,7 +90,7 @@ export async function getDailyProfileWithLog() {
   return { text: doc.text || DEFAULT_PROFILES.daily_profile, recent_log: logArr };
 }
 
-// Fetches latest long/core, always falls back to defaults if missing
+// Fetch any profile type (long/core, fallback to default)
 export async function getProfile(type = "daily_profile", limit = 1) {
   const url = new URL(`${DIFY_API_URL}/datasets/${DIFY_DATASET_ID}/documents`);
   url.searchParams.append("metadata.type", type);
@@ -140,13 +146,13 @@ Important Reflections (bullet points):
   return j.choices[0].message.content.trim();
 }
 
-// Fuse and summarize any two profile texts into a single merged profile (no duplicate blocks)
+// Fuse and summarize two profile texts into one, structure only (no primary/secondary in output)
 export async function summarizeFuse(primary, secondary, promptLabel = "Fuse and summarize these profiles:") {
   const prompt = `
 ${promptLabel}
 
 Merge the two user memory profiles below into a single, up-to-date summary in the structure provided.
-- Output ONLY the merged summary. Do NOT include both input blocks or any "Profile 1" or "Profile 2" sections.
+- Output ONLY the merged summary. Do NOT include both input blocks or any "Profile 1", "Profile 2", "PRIMARY", or "SECONDARY" sections.
 - If any field is missing, write "unknown".
 
 Format:
@@ -160,11 +166,8 @@ Aspirations/Concerns:
 Favorite Topics:
 Important Reflections (bullet points):
 
-Profile 1:
-${primary || "(unknown)"}
-
-Profile 2:
-${secondary || "(unknown)"}
+${primary || ""}
+${secondary || ""}
   `;
   const res = await fetch("https://api.openai.com/v1/chat/completions", {
     method: "POST",
