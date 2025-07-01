@@ -1,5 +1,12 @@
 // src/utils/memoryUtils.js
 
+import { db } from './firebase';
+import { doc, setDoc, getDoc } from "firebase/firestore";
+
+// For now, use a single user ID ("default").
+// Swap to real Auth UID for multi-user.
+const USER_ID = "default";
+
 export const DEFAULT_PROFILES = {
   daily_profile: `
 Name: unknown
@@ -29,84 +36,44 @@ Important reflections: unknown
 `.trim()
 };
 
-const DIFY_API_KEY    = process.env.DIFY_API_KEY;
-const DIFY_API_URL    = process.env.DIFY_API_URL || "https://api.dify.ai/v1";
-const DIFY_DATASET_ID = process.env.DIFY_DATASET_ID;
-const OPENAI_API_KEY  = process.env.OPENAI_API_KEY;
+const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
 
-function getHeaders() {
-  return {
-    Authorization: `Bearer ${DIFY_API_KEY}`,
-    "Content-Type": "application/json",
-  };
-}
+// --- FIRESTORE CRUD ---
 
-// Save/overwrite a profile (one file per type: daily, long, core)
+// Save/overwrite a profile (daily, long, core)
+// metadata can include { recent_log: JSON.stringify([...]) }
 export async function saveProfile(profileText, type = "daily_profile", metadata = {}) {
-  const name = type;
-  const body = {
-    name,
-    text: profileText,
-    indexing_technique: "economy",
-    process_rule: { mode: "automatic" },
-    metadata: { ...metadata, type }
-  };
-  const res = await fetch(
-    `${DIFY_API_URL}/datasets/${DIFY_DATASET_ID}/document/create_by_text`,
-    {
-      method: "POST",
-      headers: getHeaders(),
-      body: JSON.stringify(body),
-    }
-  );
-  if (!res.ok) {
-    const errorBody = await res.text();
-    throw new Error(`Dify saveProfile failed: ${res.status} – ${errorBody}`);
-  }
-  return res.json();
+  const docId = `${USER_ID}_${type}`; // e.g. "default_daily_profile"
+  const data = { text: profileText, ...metadata, type };
+  await setDoc(doc(db, "profiles", docId), data);
+  return data;
 }
 
-// Save daily profile and attach recent log (for session continuity)
+// Save daily profile with chat log attached (for continuity)
 export async function saveDailyProfileWithLog(profileText, chatLogArr = []) {
   return saveProfile(profileText, "daily_profile", { recent_log: JSON.stringify(chatLogArr) });
 }
 
-// Fetch daily profile with log (or fallback to default)
+// Get daily profile (with chat log if present)
 export async function getDailyProfileWithLog() {
-  const url = new URL(`${DIFY_API_URL}/datasets/${DIFY_DATASET_ID}/documents`);
-  url.searchParams.append("metadata.type", "daily_profile");
-  url.searchParams.append("order_by", "-created_at");
-  url.searchParams.append("limit", "1");
-
-  const res = await fetch(url.toString(), { headers: getHeaders(), cache: "no-store" });
-  const text = await res.text();
-  if (!res.ok) throw new Error(`getProfile daily_profile failed: ${res.status} – ${text}`);
-  const data = JSON.parse(text);
-  if (!data.data.length) return { text: DEFAULT_PROFILES.daily_profile, recent_log: [] };
-
-  const doc = data.data[0];
+  const docId = `${USER_ID}_daily_profile`;
+  const docSnap = await getDoc(doc(db, "profiles", docId));
+  if (!docSnap.exists()) return { text: DEFAULT_PROFILES.daily_profile, recent_log: [] };
+  const data = docSnap.data();
   let logArr = [];
-  try { logArr = JSON.parse(doc.metadata?.recent_log || "[]"); } catch { logArr = []; }
-  return { text: doc.text || DEFAULT_PROFILES.daily_profile, recent_log: logArr };
+  try { logArr = JSON.parse(data.recent_log || "[]"); } catch { logArr = []; }
+  return { text: data.text || DEFAULT_PROFILES.daily_profile, recent_log: logArr };
 }
 
-// Fetch any profile type (long/core, fallback to default)
+// Get profile of any type (daily, long_term, core) - returns [profileText]
 export async function getProfile(type = "daily_profile", limit = 1) {
-  const url = new URL(`${DIFY_API_URL}/datasets/${DIFY_DATASET_ID}/documents`);
-  url.searchParams.append("metadata.type", type);
-  url.searchParams.append("order_by", "-created_at");
-  url.searchParams.append("limit", limit.toString());
-
-  const res = await fetch(url.toString(), { headers: getHeaders(), cache: "no-store" });
-  const text = await res.text();
-  if (!res.ok) throw new Error(`getProfile ${type} failed: ${res.status} – ${text}`);
-  const data = JSON.parse(text);
-  const profiles = data.data.map((d) => d.text).filter(Boolean);
-  if (!profiles.length) {
-    return [DEFAULT_PROFILES[type] || ""];
-  }
-  return profiles;
+  const docId = `${USER_ID}_${type}`;
+  const docSnap = await getDoc(doc(db, "profiles", docId));
+  if (!docSnap.exists()) return [DEFAULT_PROFILES[type] || ""];
+  return [docSnap.data().text];
 }
+
+// --- SUMMARIZATION (unchanged) ---
 
 // Summarize chat log into daily profile fields (structured summary)
 export async function summarizeAsProfile(chatLog) {
@@ -146,7 +113,7 @@ Important Reflections (bullet points):
   return j.choices[0].message.content.trim();
 }
 
-// Fuse and summarize two profile texts into one, structure only (no primary/secondary in output)
+// Fuse and summarize two profile texts into one, structure only
 export async function summarizeFuse(primary, secondary, promptLabel = "Fuse and summarize these profiles:") {
   const prompt = `
 ${promptLabel}
